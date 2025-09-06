@@ -26,7 +26,7 @@ export class UserAccount {
   hashed_password: string;
 
   @Column({ type: 'varchar', nullable: true })
-  hashed_refresh_token: string;
+  hashed_refresh_token: string | null;
 
   @Column({ type: 'varchar', nullable: true })
   token_reset_password: string | null;

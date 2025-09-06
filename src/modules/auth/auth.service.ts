@@ -30,6 +30,7 @@ export class AuthService {
 
   private readonly TOKEN_EXPIRATION_TIME = 60 * 15 * 1000; // 15 minutes
 
+  // hàm đăng nhập
   async login(
     authDto: AuthDto,
     res: Response,
@@ -129,6 +130,26 @@ export class AuthService {
       maxAge: this.MAX_AGE_COOKIE,
       path: this.PATH,
     });
+  }
+
+  // hàm xóa refreshToken trong cookie
+  removeRefreshTokenInCookie(res: Response) {
+    res.cookie(ENTITIES_MESSAGE.REFRESH_TOKEN, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0,
+      path: this.PATH,
+    });
+  }
+
+  // hàm đăng xuất
+  async logout(res: Response, userId: number) {
+    // xóa refreshToken trong cookie
+    this.removeRefreshTokenInCookie(res);
+
+    // cập nhật trường hashed_refresh_token trong bảng user_accounts = null
+    await this.userRepo.update(userId, { hashed_refresh_token: null });
   }
 
   async getProfile(userId: number) {
