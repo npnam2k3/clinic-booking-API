@@ -12,5 +12,8 @@ export default () => ({
     type: process.env.DATABASE_TYPE || 'mysql',
     name: process.env.DATABASE_NAME,
   },
+  jwt_access_token_secret: process.env.JWT_ACCESS_TOKEN_KEY,
+  jwt_refresh_token_secret: process.env.JWT_REFRESH_TOKEN_KEY,
+
   client_url: process.env.CLIENT_URL,
 });

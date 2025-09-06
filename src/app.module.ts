@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { Global, MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ResponseInterceptor } from 'src/common/interceptors/response.interceptor';
@@ -16,6 +16,7 @@ import { SpecialtiesModule } from 'src/modules/specialties/specialties.module';
 import { WorkSchedulesModule } from 'src/modules/work_schedules/work_schedules.module';
 import { PermissionsModule } from 'src/modules/permissions/permissions.module';
 import { RolesModule } from 'src/modules/roles/roles.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -23,6 +24,8 @@ import { RolesModule } from 'src/modules/roles/roles.module';
       isGlobal: true,
       load: [configuration],
     }),
+    JwtModule.register({}),
+
     DatabaseModule,
 
     UsersModule,
@@ -44,6 +47,7 @@ import { RolesModule } from 'src/modules/roles/roles.module';
       useClass: ResponseInterceptor,
     },
   ],
+  exports: [JwtModule],
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
