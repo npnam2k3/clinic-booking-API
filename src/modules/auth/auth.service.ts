@@ -14,6 +14,8 @@ import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { ENTITIES_MESSAGE } from 'src/common/constants/entities.message';
 import { hashRefreshToken } from 'src/common/utils/handle_refreshToken';
+import { toDTO } from 'src/common/utils/mapToDto';
+import { UserResponseDTO } from 'src/modules/users/dto/response-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +25,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  private TIME_EXPIRES_ACCESS_TOKEN: string = '30s';
+  private TIME_EXPIRES_ACCESS_TOKEN: string = '1d';
   private TIME_EXPIRES_REFRESH_TOKEN: string = '7d';
   private MAX_AGE_COOKIE: number = 7 * 24 * 60 * 60 * 1000; // 7 days
   private PATH: string = '/';
@@ -153,6 +155,21 @@ export class AuthService {
   }
 
   async getProfile(userId: number) {
-    return 'ok';
+    const userExists = await this.userRepo.findOne({
+      where: {
+        user_id: userId,
+      },
+      relations: {
+        contact: true,
+        role: true,
+      },
+    });
+
+    // loại bỏ đi những trường không cần thiết
+    const result = toDTO<UserResponseDTO, UserAccount | null>(
+      UserResponseDTO,
+      userExists,
+    );
+    return result;
   }
 }
