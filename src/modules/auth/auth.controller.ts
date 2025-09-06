@@ -23,6 +23,14 @@ export class AuthController {
     return this.authService.login(authDto, res);
   }
 
+  @Post('logout')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  logout(@Request() req, @Res({ passthrough: true }) res: Response) {
+    const { sub } = req.user;
+    return this.authService.logout(res, +sub);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
