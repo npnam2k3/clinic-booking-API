@@ -6,10 +6,11 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { catchError, map, Observable, throwError } from 'rxjs';
+import { RESPONSE_MESSAGE_METADATA } from 'src/common/decorators/response.decorator';
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
-  //   constructor(private readonly reflector: Reflector) {}
+  constructor(private readonly reflector: Reflector) {}
   intercept(
     context: ExecutionContext,
     next: CallHandler<any>,
@@ -18,7 +19,11 @@ export class ResponseInterceptor implements NestInterceptor {
       map((data) => ({
         status: true,
         statusCode: context.switchToHttp().getResponse().statusCode,
-        message: 'Success',
+        message:
+          this.reflector.get<string>(
+            RESPONSE_MESSAGE_METADATA,
+            context.getHandler(),
+          ) || 'Success',
         data,
         timestamp: new Date().toISOString(),
       })),

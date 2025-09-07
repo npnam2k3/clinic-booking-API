@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   UnauthorizedException,
@@ -6,7 +7,7 @@ import {
 import { AuthDto } from './dto/auth.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserAccount } from 'src/modules/users/entities/user_account.entity';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { comparePassword } from 'src/common/utils/handle_password';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import configuration from 'src/configs/load.env';
@@ -14,14 +15,19 @@ import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { ENTITIES_MESSAGE } from 'src/common/constants/entities.message';
 import { hashRefreshToken } from 'src/common/utils/handle_refreshToken';
-import { toDTO } from 'src/common/utils/mapToDto';
+import { removeEmptyFields, toDTO } from 'src/common/utils/mapToDto';
 import { UserResponseDTO } from 'src/modules/users/dto/response-user.dto';
+import { ProfileDto } from 'src/modules/auth/dto/profile.dto';
+import { Contact } from 'src/modules/users/entities/contact.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(UserAccount)
     private readonly userRepo: Repository<UserAccount>,
+
+    @InjectRepository(Contact)
+    private readonly contactRepo: Repository<Contact>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -154,6 +160,7 @@ export class AuthService {
     await this.userRepo.update(userId, { hashed_refresh_token: null });
   }
 
+  // hàm xem thông tin cá nhân
   async getProfile(userId: number) {
     const userExists = await this.userRepo.findOne({
       where: {
@@ -171,5 +178,31 @@ export class AuthService {
       userExists,
     );
     return result;
+  }
+
+  // hàm cập nhật thông tin cá nhân
+  async updateProfile(userId: number, profileDto: ProfileDto) {
+    const cleanDto = removeEmptyFields(profileDto);
+
+    if (Object.keys(cleanDto).includes('phone_number')) {
+      const checkPhoneNumberExists = await this.contactRepo.count({
+        where: {
+          phone_number: profileDto.phone_number,
+          user_account: {
+            user_id: Not(userId),
+          },
+        },
+      });
+      if (checkPhoneNumberExists > 0) {
+        throw new ConflictException(ERROR_MESSAGE.PHONE_NUMBER_EXISTS);
+      }
+    }
+
+    await this.contactRepo.update(
+      {
+        user_account: { user_id: userId },
+      },
+      cleanDto,
+    );
   }
 }

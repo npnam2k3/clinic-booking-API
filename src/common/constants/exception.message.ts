@@ -14,4 +14,6 @@ export const ERROR_MESSAGE = {
   TOKEN_EXPIRED_ERROR: 'Token has expired',
 
   INVALID_TOKEN: 'Invalid token',
+
+  PHONE_NUMBER_EXISTS: 'Số điện thoại này đã tồn tại',
 };
