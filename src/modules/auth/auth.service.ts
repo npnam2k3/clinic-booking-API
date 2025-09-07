@@ -1,14 +1,20 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserAccount } from 'src/modules/users/entities/user_account.entity';
-import { Not, Repository } from 'typeorm';
-import { comparePassword } from 'src/common/utils/handle_password';
+import { MoreThan, Not, Repository } from 'typeorm';
+import {
+  comparePassword,
+  hashPassword,
+} from 'src/common/utils/handle_password';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import configuration from 'src/configs/load.env';
 import { JwtService } from '@nestjs/jwt';
@@ -19,6 +25,9 @@ import { removeEmptyFields, toDTO } from 'src/common/utils/mapToDto';
 import { UserResponseDTO } from 'src/modules/users/dto/response-user.dto';
 import { ProfileDto } from 'src/modules/auth/dto/profile.dto';
 import { Contact } from 'src/modules/users/entities/contact.entity';
+import { randomBytes } from 'crypto';
+import { MailService } from 'src/common/mail/mail.service';
+import { ResetPasswordDTO } from 'src/modules/auth/dto/resetPassword.dto';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +38,7 @@ export class AuthService {
     @InjectRepository(Contact)
     private readonly contactRepo: Repository<Contact>,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   private TIME_EXPIRES_ACCESS_TOKEN: string = '1d';
@@ -204,5 +214,78 @@ export class AuthService {
       },
       cleanDto,
     );
+  }
+
+  // hàm quên mật khẩu
+  async forgotPassword(email: string) {
+    // kiểm tra email có tồn tại không
+    const userExists = await this.userRepo.findOne({
+      where: {
+        email,
+      },
+      relations: {
+        contact: true,
+      },
+    });
+
+    // báo lỗi nếu không tồn tại
+    if (!userExists) throw new NotFoundException(ERROR_MESSAGE.EMAIL_NOT_FOUND);
+
+    // tạo token reset password
+    const tokenReset = randomBytes(32).toString('hex');
+
+    // lưu token và thời gian hết hạn của token vào bảng user_accounts
+    userExists.token_reset_password = tokenReset;
+    userExists.token_reset_password_expiration = new Date(
+      Date.now() + this.TOKEN_EXPIRATION_TIME,
+    );
+    await this.userRepo.save(userExists);
+
+    // gửi email
+    try {
+      await this.mailService.sendEmail(userExists, tokenReset);
+    } catch (error) {
+      console.error(`Email sending failed for ${email}:`, error);
+      throw new InternalServerErrorException(
+        ERROR_MESSAGE.INTERNAL_ERROR_SERVER,
+      );
+    }
+  }
+
+  // hàm đặt lại mật khẩu
+  async resetPassword(tokenReset: string, resetPasswordDTO: ResetPasswordDTO) {
+    // tìm user theo token đồng thời kiểm tra thời hạn của token
+    const userExists = await this.userRepo.findOne({
+      where: {
+        token_reset_password: tokenReset,
+        token_reset_password_expiration: MoreThan(new Date()),
+      },
+    });
+
+    // nếu không tồn tại thì báo lỗi
+    if (!userExists) {
+      throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+    }
+
+    // kiểm tra mật khẩu mới và mật khẩu xác nhận có giống nhau hay không
+    if (resetPasswordDTO.new_password !== resetPasswordDTO.confirm_password) {
+      throw new BadRequestException(ERROR_MESSAGE.INVALID_CONFIRM_PASSWORD);
+    }
+
+    // mã hóa mật khẩu mới
+    const hashedNewPassword = await hashPassword(resetPasswordDTO.new_password);
+
+    // cập nhật mật khẩu mới đã mã hóa vào bảng user_accounts
+    userExists.hashed_password = hashedNewPassword;
+
+    // cập nhật các trường reset mật khẩu thành null
+    userExists.token_reset_password = null;
+    userExists.token_reset_password_expiration = null;
+
+    // cập nhật refresh_token thành null để logout người dùng
+    userExists.hashed_refresh_token = null;
+
+    // lưu lại user đã cập nhật
+    await this.userRepo.save(userExists);
   }
 }

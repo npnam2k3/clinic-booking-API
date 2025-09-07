@@ -17,6 +17,7 @@ import { WorkSchedulesModule } from 'src/modules/work_schedules/work_schedules.m
 import { PermissionsModule } from 'src/modules/permissions/permissions.module';
 import { RolesModule } from 'src/modules/roles/roles.module';
 import { JwtModule } from '@nestjs/jwt';
+import { MailModule } from 'src/common/mail/mail.module';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { JwtModule } from '@nestjs/jwt';
     JwtModule.register({}),
 
     DatabaseModule,
+
+    MailModule,
 
     UsersModule,
     PermissionsModule,

@@ -16,4 +16,12 @@ export const ERROR_MESSAGE = {
   INVALID_TOKEN: 'Invalid token',
 
   PHONE_NUMBER_EXISTS: 'Số điện thoại này đã tồn tại',
+
+  EMAIL_NOT_FOUND: 'Email không tồn tại',
+
+  INTERNAL_ERROR_SERVER: 'Hệ thống bận, vui lòng thử lại.',
+
+  INVALID_CONFIRM_PASSWORD: 'Mật khẩu xác thực phải trùng với mật khẩu mới.',
+
+  USER_NOT_FOUND: 'Không tìm thấy thông tin người dùng',
 };
