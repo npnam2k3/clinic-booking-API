@@ -20,6 +20,7 @@ import { ResponseMessage } from 'src/common/decorators/response.decorator';
 import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
 import { ForgotPasswordDTO } from 'src/modules/auth/dto/forgotPassword.dto';
 import { ResetPasswordDTO } from 'src/modules/auth/dto/resetPassword.dto';
+import { ChangePasswordDTO } from 'src/modules/auth/dto/changePassword.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -70,5 +71,17 @@ export class AuthController {
     @Body() resetPasswordDTO: ResetPasswordDTO,
   ) {
     return this.authService.resetPassword(token, resetPasswordDTO);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  @ResponseMessage(RESPONSE_MESSAGE.CHANGE_PASSWORD)
+  changePassword(
+    @Body() changePasswordDTO: ChangePasswordDTO,
+    @Request() req,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const { sub } = req.user;
+    return this.authService.changePassword(changePasswordDTO, +sub, res);
   }
 }

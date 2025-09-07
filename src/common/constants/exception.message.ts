@@ -24,4 +24,8 @@ export const ERROR_MESSAGE = {
   INVALID_CONFIRM_PASSWORD: 'Mật khẩu xác thực phải trùng với mật khẩu mới.',
 
   USER_NOT_FOUND: 'Không tìm thấy thông tin người dùng',
+
+  WRONG_PASSWORD: 'Mật khẩu không chính xác!',
+
+  DUPLICATE_PASSWORD: 'Mật khẩu mới phải khác mật khẩu hiện tại',
 };

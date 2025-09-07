@@ -28,6 +28,7 @@ import { Contact } from 'src/modules/users/entities/contact.entity';
 import { randomBytes } from 'crypto';
 import { MailService } from 'src/common/mail/mail.service';
 import { ResetPasswordDTO } from 'src/modules/auth/dto/resetPassword.dto';
+import { ChangePasswordDTO } from 'src/modules/auth/dto/changePassword.dto';
 
 @Injectable()
 export class AuthService {
@@ -287,5 +288,53 @@ export class AuthService {
 
     // lưu lại user đã cập nhật
     await this.userRepo.save(userExists);
+  }
+
+  // hàm đổi mật khẩu
+  async changePassword(
+    changePasswordDTO: ChangePasswordDTO,
+    userId: number,
+    res: Response,
+  ) {
+    // kiểm tra mật khẩu mới và mật khẩu xác nhận phải bằng nhau
+    if (changePasswordDTO.confirm_password !== changePasswordDTO.new_password) {
+      throw new BadRequestException(ERROR_MESSAGE.INVALID_CONFIRM_PASSWORD);
+    }
+
+    // kiểm tra mật khẩu hiện tại phải chính xác
+    const user = await this.userRepo.findOne({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+    }
+    const matchPassword = await comparePassword(
+      changePasswordDTO.current_password,
+      user.hashed_password,
+    );
+    if (!matchPassword) {
+      throw new BadRequestException(ERROR_MESSAGE.WRONG_PASSWORD);
+    }
+
+    // kiểm tra mật khẩu cũ và mật khẩu mới phải khác nhau
+    if (changePasswordDTO.new_password === changePasswordDTO.current_password) {
+      throw new BadRequestException(ERROR_MESSAGE.DUPLICATE_PASSWORD);
+    }
+
+    // mã hóa mật khẩu mới
+    const hashedNewPassword = await hashPassword(
+      changePasswordDTO.new_password,
+    );
+
+    // lưu mật khẩu đã mã hóa vào db
+    await this.userRepo.update(userId, {
+      hashed_password: hashedNewPassword,
+    });
+
+    // logout
+    await this.logout(res, userId);
   }
 }
