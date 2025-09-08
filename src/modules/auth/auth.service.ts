@@ -20,7 +20,10 @@ import configuration from 'src/configs/load.env';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { ENTITIES_MESSAGE } from 'src/common/constants/entities.message';
-import { hashRefreshToken } from 'src/common/utils/handle_refreshToken';
+import {
+  compareRefreshToken,
+  hashRefreshToken,
+} from 'src/common/utils/handle_refreshToken';
 import { removeEmptyFields, toDTO } from 'src/common/utils/mapToDto';
 import { UserResponseDTO } from 'src/modules/users/dto/response-user.dto';
 import { ProfileDto } from 'src/modules/auth/dto/profile.dto';
@@ -336,5 +339,56 @@ export class AuthService {
 
     // logout
     await this.logout(res, userId);
+  }
+
+  // hàm refresh token - lấy lại cặp token mới
+  async refreshToken(userId: number, refreshTokenOld: string, res: Response) {
+    // tìm user theo userId
+    const userExists = await this.userRepo.findOne({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    // nếu không có user => báo lỗi
+    if (!userExists)
+      throw new UnauthorizedException(ERROR_MESSAGE.UNAUTHENTICATED);
+
+    // nếu user có trường hashed_refresh_token = null => báo lỗi
+    if (!userExists.hashed_refresh_token)
+      throw new UnauthorizedException(ERROR_MESSAGE.EXPIRED_SESSION_LOGIN);
+
+    // so sánh refreshTokenOld và refreshToken đã hash trước đó
+    const compareRT = await compareRefreshToken(
+      refreshTokenOld,
+      userExists.hashed_refresh_token,
+    );
+
+    // nếu không bằng nhau => báo lỗi cần phải đăng nhập lại (hết phiên đăng nhập)
+    if (!compareRT)
+      throw new UnauthorizedException(ERROR_MESSAGE.EXPIRED_SESSION_LOGIN);
+
+    // tạo 1 cặp token mới
+    const { accessToken, refreshToken } = await this.signJwtToken(
+      userExists.user_id,
+      userExists.email,
+    );
+
+    // xóa refreshToken cũ trong cookie
+    this.removeRefreshTokenInCookie(res);
+
+    // lưu refreshToken mới tạo vào cookie
+    this.saveRefreshTokenIntoCookie(res, refreshToken);
+
+    // mã hóa refreshToken mới tạo
+    const hashedNewRefreshToken = await hashRefreshToken(refreshToken);
+
+    // lưu refreshToken đã mã hóa vào db
+    await this.userRepo.update(userExists.user_id, {
+      hashed_refresh_token: hashedNewRefreshToken,
+    });
+
+    // trả về accessToken mới
+    return { accessToken };
   }
 }

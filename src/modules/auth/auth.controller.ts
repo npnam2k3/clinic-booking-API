@@ -21,6 +21,7 @@ import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
 import { ForgotPasswordDTO } from 'src/modules/auth/dto/forgotPassword.dto';
 import { ResetPasswordDTO } from 'src/modules/auth/dto/resetPassword.dto';
 import { ChangePasswordDTO } from 'src/modules/auth/dto/changePassword.dto';
+import { RefreshTokenGuard } from 'src/common/guards/refresh_token.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -83,5 +84,14 @@ export class AuthController {
   ) {
     const { sub } = req.user;
     return this.authService.changePassword(changePasswordDTO, +sub, res);
+  }
+
+  @UseGuards(RefreshTokenGuard)
+  @HttpCode(200)
+  @Post('refresh-token')
+  refreshToken(@Request() req, @Res({ passthrough: true }) res: Response) {
+    const { sub } = req.user;
+    const refreshTokenOld = req.refreshToken;
+    return this.authService.refreshToken(+sub, refreshTokenOld, res);
   }
 }

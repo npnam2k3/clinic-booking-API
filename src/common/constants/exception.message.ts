@@ -28,4 +28,6 @@ export const ERROR_MESSAGE = {
   WRONG_PASSWORD: 'Mật khẩu không chính xác!',
 
   DUPLICATE_PASSWORD: 'Mật khẩu mới phải khác mật khẩu hiện tại',
+
+  EXPIRED_SESSION_LOGIN: 'Hết phiên đăng nhập',
 };
