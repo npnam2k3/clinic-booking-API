@@ -30,4 +30,6 @@ export const ERROR_MESSAGE = {
   DUPLICATE_PASSWORD: 'Mật khẩu mới phải khác mật khẩu hiện tại',
 
   EXPIRED_SESSION_LOGIN: 'Hết phiên đăng nhập',
+
+  FORBIDDEN: 'Bạn không có quyền truy cập!',
 };
