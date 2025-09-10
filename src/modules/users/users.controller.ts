@@ -62,8 +62,17 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.user })
+  getDetailUserClient(@Param('id') id: string) {
+    return this.usersService.getDetailUserClient(+id);
+  }
+
+  @Get('staff/:id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.staff })
+  getDetailStaff(@Param('id') id: string) {
+    return this.usersService.getDetailStaff(+id);
   }
 
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
