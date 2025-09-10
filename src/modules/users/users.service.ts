@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -224,10 +228,63 @@ export class UsersService {
     return user;
   }
 
+  // hàm lấy thông tin chi tiết tài khoản khách hàng - quyền admin, staff
+  async getDetailUserClient(userId: number) {
+    const userFound = await this.userRepo.findOne({
+      where: {
+        user_id: userId,
+      },
+      relations: {
+        contact: true,
+        role: true,
+      },
+    });
+    if (!userFound) throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+
+    return {
+      user_id: userFound.user_id,
+      email: userFound.email,
+      fullname: userFound.contact.fullname,
+      phone_number: userFound.contact.phone_number,
+      address: userFound.contact.address,
+      is_block: userFound.is_block,
+      createdAt: userFound.createdAt,
+      patients: userFound.contact.patients || [],
+      reviews: userFound.contact.reviews || [],
+      role: userFound.role.role_name,
+      appointment_cancellations: userFound.appointment_cancellations || [],
+    };
+  }
+
+  // hàm lấy thông tin chi tiết tài khoản nhân viên - quyền admin
+  async getDetailStaff(userId: number) {
+    const staffFound = await this.userRepo.findOne({
+      where: {
+        user_id: userId,
+      },
+      relations: {
+        contact: true,
+        role: true,
+      },
+    });
+    if (!staffFound) throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+
+    return {
+      user_id: staffFound.user_id,
+      email: staffFound.email,
+      fullname: staffFound.contact.fullname,
+      phone_number: staffFound.contact.phone_number,
+      address: staffFound.contact.address,
+      is_block: staffFound.is_block,
+      createdAt: staffFound.createdAt,
+      role: staffFound.role.role_name,
+      appointment_cancellations: staffFound.appointment_cancellations || [],
+    };
+  }
+
   // hàm cập nhật thông tin của staff và user - quyền Admin
   async update(id: number, updateUserDto: UpdateUserDto) {
     const cleanDto = removeEmptyFields(updateUserDto);
-    console.log('check cleanDto::', cleanDto);
 
     if (Object.keys(cleanDto).includes('phone_number')) {
       const checkPhoneNumberExists = await this.contactRepo.count({
