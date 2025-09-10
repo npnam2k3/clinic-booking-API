@@ -323,4 +323,39 @@ export class UsersService {
 
     await this.userRepo.softRemove(userFound);
   }
+
+  // hàm khóa tài khoản nhân viên - quyền Admin
+  async lockUser(userId: number) {
+    const userFound = await this.userRepo.count({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    if (userFound === 0) {
+      throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+    }
+
+    await this.userRepo.update(userId, {
+      is_block: true,
+      hashed_refresh_token: null,
+    });
+  }
+
+  // hàm khóa tài khoản nhân viên - quyền Admin
+  async unlockUser(userId: number) {
+    const userFound = await this.userRepo.count({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    if (userFound === 0) {
+      throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+    }
+
+    await this.userRepo.update(userId, {
+      is_block: false,
+    });
+  }
 }
