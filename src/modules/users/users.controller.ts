@@ -16,6 +16,8 @@ import { AuthorizationGuard } from 'src/common/guards/authorization.guard';
 import { Permissions } from 'src/common/decorators/permission.decorator';
 import { Action } from 'src/common/enums/action.enum';
 import { Subject } from 'src/common/enums/subject.enum';
+import { ResponseMessage } from 'src/common/decorators/response.decorator';
+import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
 
 @Controller('users')
 export class UsersController {
@@ -45,6 +47,9 @@ export class UsersController {
     return this.usersService.findOne(+id);
   }
 
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.update, subject: Subject.staff })
+  @ResponseMessage(RESPONSE_MESSAGE.UPDATE)
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(+id, updateUserDto);
