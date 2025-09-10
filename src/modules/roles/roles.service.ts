@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import { Role } from 'src/modules/roles/entities/role.entity';
 import { Repository } from 'typeorm';
 
@@ -20,5 +21,16 @@ export class RolesService {
       },
     });
     return role?.permissions;
+  }
+
+  async findRoleByName(roleName: string): Promise<Role> {
+    const roleFound = await this.roleRepo.findOne({
+      where: {
+        role_name: roleName,
+      },
+    });
+    if (!roleFound) throw new NotFoundException(ERROR_MESSAGE.ROLE_NOT_FOUND);
+
+    return roleFound;
   }
 }

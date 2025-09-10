@@ -17,6 +17,8 @@ export const ERROR_MESSAGE = {
 
   PHONE_NUMBER_EXISTS: 'Số điện thoại này đã tồn tại',
 
+  EMAIL_EXISTS: 'Email này đã tồn tại',
+
   EMAIL_NOT_FOUND: 'Email không tồn tại',
 
   INTERNAL_ERROR_SERVER: 'Hệ thống bận, vui lòng thử lại.',
@@ -32,4 +34,6 @@ export const ERROR_MESSAGE = {
   EXPIRED_SESSION_LOGIN: 'Hết phiên đăng nhập',
 
   FORBIDDEN: 'Bạn không có quyền truy cập!',
+
+  ROLE_NOT_FOUND: 'Role not found',
 };

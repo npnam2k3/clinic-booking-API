@@ -6,6 +6,7 @@ import { UserAccount } from 'src/modules/users/entities/user_account.entity';
 import { Contact } from 'src/modules/users/entities/contact.entity';
 import { CommonModule } from 'src/common/common.module';
 import { JwtModule } from '@nestjs/jwt';
+import { RolesModule } from 'src/modules/roles/roles.module';
 
 @Module({
   // import các entity để có thể inject vào service dùng, nếu không dùng thì không cần import
@@ -13,6 +14,7 @@ import { JwtModule } from '@nestjs/jwt';
     TypeOrmModule.forFeature([UserAccount, Contact]),
     forwardRef(() => CommonModule),
     JwtModule,
+    RolesModule,
   ],
   controllers: [UsersController],
   providers: [UsersService],

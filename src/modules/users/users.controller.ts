@@ -23,9 +23,9 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
   @Permissions({ action: Action.create, subject: Subject.staff })
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  @Post('staff')
+  createStaff(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.createStaff(createUserDto);
   }
 
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
