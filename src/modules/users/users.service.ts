@@ -308,7 +308,19 @@ export class UsersService {
     );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  // hàm xóa tài khoản khách và nhân viên - quyền Admin
+  async remove(userId: number) {
+    const userFound = await this.userRepo.findOne({
+      where: {
+        user_id: userId,
+      },
+      relations: {
+        contact: true,
+      },
+    });
+
+    if (!userFound) throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+
+    await this.userRepo.softRemove(userFound);
   }
 }
