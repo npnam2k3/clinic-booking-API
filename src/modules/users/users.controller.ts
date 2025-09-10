@@ -84,7 +84,26 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.delete, subject: Subject.user })
+  @ResponseMessage(RESPONSE_MESSAGE.DELETE)
   remove(@Param('id') id: string) {
     return this.usersService.remove(+id);
+  }
+
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.lock, subject: Subject.user })
+  @ResponseMessage(RESPONSE_MESSAGE.LOCK)
+  @Patch('lock-account/:id')
+  lockUser(@Param('id') id: string) {
+    return this.usersService.lockUser(+id);
+  }
+
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.unlock, subject: Subject.user })
+  @ResponseMessage(RESPONSE_MESSAGE.UNLOCK)
+  @Patch('unlock-account/:id')
+  unlockUser(@Param('id') id: string) {
+    return this.usersService.unlockUser(+id);
   }
 }

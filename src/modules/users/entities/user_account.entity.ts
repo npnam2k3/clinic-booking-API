@@ -47,7 +47,10 @@ export class UserAccount {
   deletedAt: Date;
 
   // relation
-  @OneToOne(() => Contact, (contact) => contact.user_account)
+  @OneToOne(() => Contact, (contact) => contact.user_account, {
+    cascade: true,
+    onDelete: 'CASCADE',
+  })
   contact: Contact;
 
   @ManyToOne(() => Role, (role) => role.user_accounts)
