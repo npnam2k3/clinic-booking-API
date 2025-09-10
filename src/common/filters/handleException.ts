@@ -20,7 +20,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     let status: number = HttpStatus.INTERNAL_SERVER_ERROR;
     let error = 'Internal Server Error';
     let message = 'Something went wrong';
-    let detail = null;
+    let detail = {};
 
     // Xử lý lỗi từ Multer
     if (exception instanceof MulterError) {

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -18,6 +19,7 @@ import { Action } from 'src/common/enums/action.enum';
 import { Subject } from 'src/common/enums/subject.enum';
 import { ResponseMessage } from 'src/common/decorators/response.decorator';
 import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
+import { PAGINATION } from 'src/common/constants/pagination';
 
 @Controller('users')
 export class UsersController {
@@ -36,10 +38,27 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
-  @Permissions({ action: Action.read, subject: Subject.staff })
+  @Permissions({ action: Action.read, subject: Subject.user })
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAllUserClient(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('keyword') keyword?: string,
+  ) {
+    const pageNum = page ? page : PAGINATION.USER.PAGE_NUMBER;
+    const limitNum = limit ? limit : PAGINATION.USER.LIMIT_NUMBER;
+    return this.usersService.findAllUserClient({
+      pageNum,
+      limitNum,
+      keyword,
+    });
+  }
+
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.staff })
+  @Get('staff')
+  findAllStaff() {
+    return this.usersService.findAllStaff();
   }
 
   @Get(':id')

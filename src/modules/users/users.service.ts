@@ -10,7 +10,7 @@ import { hashPassword } from 'src/common/utils/handle_password';
 import { RolesService } from 'src/modules/roles/roles.service';
 import { UserResponseDTO } from 'src/modules/users/dto/response-user.dto';
 import { Role } from 'src/modules/users/enum';
-import { removeEmptyFields } from 'src/common/utils/mapToDto';
+import { removeEmptyFields, toDTO } from 'src/common/utils/mapToDto';
 
 @Injectable()
 export class UsersService {
@@ -146,8 +146,70 @@ export class UsersService {
     );
   }
 
-  findAll() {
-    return `This action returns all users`;
+  // hàm lấy danh sách thông tin tài khoản khách hàng - quyền admin, staff
+  async findAllUserClient({ pageNum, limitNum, keyword }) {
+    // thứ tự thực hiện câu truy vấn sql: search => order => pagination
+    const queryBuilder = this.userRepo
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .leftJoinAndSelect('user.contact', 'contact')
+      // chỉ lấy theo role = user client
+      .where('role.role_name = :roleName', {
+        roleName: Role.USER_CLIENT,
+      });
+
+    //1. search
+    if (keyword) {
+      queryBuilder.andWhere('contact.fullname LIKE :keyword', {
+        keyword: `%${keyword}%`,
+      });
+    }
+
+    //2. sort
+    queryBuilder.orderBy(`user.createdAt`, 'DESC');
+
+    //3. pagination
+    const totalRecords = await queryBuilder.getCount();
+    const users = await queryBuilder
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
+      .select([
+        'user.user_id',
+        'user.email',
+        'user.createdAt',
+        'role',
+        'contact.phone_number',
+        'contact.address',
+        'contact.fullname',
+      ])
+      .getMany();
+
+    return {
+      users,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limitNum),
+      conditions: {
+        pageNum,
+        limitNum,
+        keyword,
+      },
+    };
+  }
+
+  // hàm lấy danh sách thông tin tài khoản nhân viên - quyền admin
+  async findAllStaff(): Promise<UserResponseDTO[]> {
+    const listStaff = await this.userRepo.find({
+      where: {
+        role: {
+          role_name: Role.STAFF,
+        },
+      },
+      relations: {
+        role: true,
+        contact: true,
+      },
+    });
+    return toDTO(UserResponseDTO, listStaff) as UserResponseDTO[];
   }
 
   async findOne(id: number) {
