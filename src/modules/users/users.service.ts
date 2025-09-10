@@ -3,13 +3,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserAccount } from 'src/modules/users/entities/user_account.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
 import { Contact } from 'src/modules/users/entities/contact.entity';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import { hashPassword } from 'src/common/utils/handle_password';
 import { RolesService } from 'src/modules/roles/roles.service';
 import { UserResponseDTO } from 'src/modules/users/dto/response-user.dto';
 import { Role } from 'src/modules/users/enum';
+import { removeEmptyFields } from 'src/common/utils/mapToDto';
 
 @Injectable()
 export class UsersService {
@@ -161,8 +162,31 @@ export class UsersService {
     return user;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  // hàm cập nhật thông tin của staff và user - quyền Admin
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    const cleanDto = removeEmptyFields(updateUserDto);
+    console.log('check cleanDto::', cleanDto);
+
+    if (Object.keys(cleanDto).includes('phone_number')) {
+      const checkPhoneNumberExists = await this.contactRepo.count({
+        where: {
+          phone_number: updateUserDto.phone_number,
+          user_account: { user_id: Not(id) },
+        },
+      });
+
+      if (checkPhoneNumberExists > 0)
+        throw new ConflictException(ERROR_MESSAGE.PHONE_NUMBER_EXISTS);
+    }
+
+    await this.contactRepo.update(
+      {
+        user_account: {
+          user_id: id,
+        },
+      },
+      cleanDto,
+    );
   }
 
   remove(id: number) {
