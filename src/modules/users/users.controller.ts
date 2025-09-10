@@ -28,6 +28,11 @@ export class UsersController {
     return this.usersService.createStaff(createUserDto);
   }
 
+  @Post()
+  createUserClient(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.createUserClient(createUserDto);
+  }
+
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
   @Permissions({ action: Action.read, subject: Subject.staff })
   @Get()
