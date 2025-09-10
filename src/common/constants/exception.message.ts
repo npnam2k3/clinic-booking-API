@@ -36,4 +36,8 @@ export const ERROR_MESSAGE = {
   FORBIDDEN: 'Bạn không có quyền truy cập!',
 
   ROLE_NOT_FOUND: 'Role not found',
+
+  DUPLICATE_SPECIALIZATION_NAME: 'Tên chuyên khoa đã tồn tại',
+
+  SPECIALIZATION_NOT_FOUND: 'Không tìm thấy chuyên khoa',
 };
