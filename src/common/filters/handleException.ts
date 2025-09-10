@@ -38,7 +38,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     else if (exception instanceof HttpException) {
       status = exception.getStatus();
       error = exception.name;
-      detail = (exception.getResponse() as any)?.errors || null;
+      detail = (exception.getResponse() as any)?.errors || {};
 
       // Custom lỗi PayloadTooLargeException
       if (status === HttpStatus.PAYLOAD_TOO_LARGE) {
