@@ -44,7 +44,7 @@ export class Doctor {
   @Column({ unique: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   avatar_url: string;
 
   @CreateDateColumn()

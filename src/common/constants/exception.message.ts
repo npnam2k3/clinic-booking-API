@@ -1,9 +1,11 @@
 export const ERROR_MESSAGE = {
-  FILE_TYPE: 'Chỉ chấp nhận file có dạng jpeg hoặc png',
+  FILE_TYPE: 'Chỉ chấp nhận file có dạng jpg, jpeg hoặc png',
 
   FILE_SIZE: 'Chỉ chấp nhận file có kích thước nhỏ hơn 5MB',
 
   UPLOAD_FILE_FAILED: 'Lỗi upload file',
+
+  FILE_NOT_FOUND: 'Không tìm thấy file',
 
   INVALID_CREDENTIALS: 'Thông tin không chính xác, vui lòng thử lại',
 
@@ -40,4 +42,6 @@ export const ERROR_MESSAGE = {
   DUPLICATE_SPECIALIZATION_NAME: 'Tên chuyên khoa đã tồn tại',
 
   SPECIALIZATION_NOT_FOUND: 'Không tìm thấy chuyên khoa',
+
+  DOCTOR_NOT_FOUND: 'Không tìm thấy thông tin bác sĩ',
 };

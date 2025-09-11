@@ -4,7 +4,7 @@ class RoleResponseDTO {
   @Expose()
   role_name: string;
 }
-class ContactResponseDTO {
+export class ContactResponseDTO {
   @Expose()
   contact_id: number;
 
