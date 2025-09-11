@@ -1,5 +1,7 @@
 import { Expose, Type } from 'class-transformer';
+import { ReviewResponseDto } from 'src/modules/reviews/dto/response-review.dto';
 import { SpecialtyResponseDto } from 'src/modules/specialties/dto/response-specialty.dto';
+import { WorkScheduleResponseDto } from 'src/modules/work_schedules/dto/response-work_schedule.dto';
 
 export class DoctorResponseDto {
   @Expose()
@@ -38,4 +40,12 @@ export class DoctorResponseDto {
   @Expose()
   @Type(() => SpecialtyResponseDto)
   specialization: SpecialtyResponseDto;
+
+  @Expose()
+  @Type(() => WorkScheduleResponseDto)
+  work_schedules: WorkScheduleResponseDto[];
+
+  @Expose()
+  @Type(() => ReviewResponseDto)
+  reviews: ReviewResponseDto[];
 }

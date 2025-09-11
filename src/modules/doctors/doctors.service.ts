@@ -96,12 +96,57 @@ export class DoctorsService {
     }
   }
 
-  findAll() {
-    return `This action returns all doctors`;
+  async findAll({ pageNum, limitNum, keyword, sortBy, orderBy }) {
+    const queryBuilder = this.doctorRepo
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect('doctor.specialty', 'specialty');
+
+    //1. search
+    if (keyword) {
+      queryBuilder.andWhere('doctor.fullname LIKE :keyword', {
+        keyword: `%${keyword}%`,
+      });
+    }
+
+    //2. sort
+    queryBuilder.orderBy(`doctor.${sortBy}`, orderBy);
+
+    //3. pagination
+    const totalRecords = await queryBuilder.getCount();
+    const doctors = await queryBuilder
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
+      .getMany();
+
+    return {
+      doctors,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limitNum),
+      conditions: {
+        pageNum,
+        limitNum,
+        keyword,
+        sortBy,
+        orderBy,
+      },
+    };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} doctor`;
+  async findOne(id: number): Promise<DoctorResponseDto> {
+    const doctorFound = await this.doctorRepo.findOne({
+      where: {
+        doctor_id: id,
+      },
+      relations: {
+        specialty: true,
+        reviews: true,
+        work_schedules: true,
+      },
+    });
+    if (!doctorFound)
+      throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
+
+    return toDTO(DoctorResponseDto, doctorFound) as DoctorResponseDto;
   }
 
   async update(
@@ -195,7 +240,15 @@ export class DoctorsService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} doctor`;
+  async remove(id: number) {
+    const doctorFound = await this.doctorRepo.count({
+      where: {
+        doctor_id: id,
+      },
+    });
+    if (doctorFound < 1)
+      throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
+
+    await this.doctorRepo.softDelete(doctorFound);
   }
 }

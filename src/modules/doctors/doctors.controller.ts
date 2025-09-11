@@ -3,13 +3,13 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
   Delete,
   UseGuards,
   UseInterceptors,
   UploadedFile,
   Put,
+  Query,
 } from '@nestjs/common';
 import { DoctorsService } from './doctors.service';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
@@ -23,6 +23,7 @@ import { Action } from 'src/common/enums/action.enum';
 import { Subject } from 'src/common/enums/subject.enum';
 import { ResponseMessage } from 'src/common/decorators/response.decorator';
 import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
+import { PAGINATION } from 'src/common/constants/pagination';
 
 @Controller('doctors')
 export class DoctorsController {
@@ -42,8 +43,22 @@ export class DoctorsController {
   }
 
   @Get()
-  findAll() {
-    return this.doctorsService.findAll();
+  findAll(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('keyword') keyword?: string,
+    @Query('sortBy') sortBy: string = 'years_of_experience',
+    @Query('orderBy') orderBy: 'ASC' | 'DESC' = 'DESC',
+  ) {
+    const pageNum = page ? page : PAGINATION.DOCTOR.PAGE_NUMBER;
+    const limitNum = limit ? limit : PAGINATION.DOCTOR.LIMIT_NUMBER;
+    return this.doctorsService.findAll({
+      pageNum,
+      limitNum,
+      keyword,
+      sortBy,
+      orderBy,
+    });
   }
 
   @Get(':id')
@@ -66,6 +81,9 @@ export class DoctorsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.delete, subject: Subject.doctor })
+  @ResponseMessage(RESPONSE_MESSAGE.DELETE)
   remove(@Param('id') id: string) {
     return this.doctorsService.remove(+id);
   }
