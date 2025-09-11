@@ -42,4 +42,6 @@ export const ERROR_MESSAGE = {
   DUPLICATE_SPECIALIZATION_NAME: 'Tên chuyên khoa đã tồn tại',
 
   SPECIALIZATION_NOT_FOUND: 'Không tìm thấy chuyên khoa',
+
+  DOCTOR_NOT_FOUND: 'Không tìm thấy thông tin bác sĩ',
 };

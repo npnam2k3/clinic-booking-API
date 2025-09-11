@@ -65,6 +65,6 @@ export class CloudinaryService {
 
   private getPublicIdFromUrl(url: string): string {
     const parts = url.split('/');
-    return parts[parts.length - 1].split('.')[0];
+    return `clinic-booking/${parts[parts.length - 1].split('.')[0]}`;
   }
 }

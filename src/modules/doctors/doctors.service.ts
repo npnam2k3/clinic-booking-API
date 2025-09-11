@@ -2,10 +2,11 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Doctor } from 'src/modules/doctors/entities/doctor.entity';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
@@ -103,8 +104,95 @@ export class DoctorsService {
     return `This action returns a #${id} doctor`;
   }
 
-  update(id: number, updateDoctorDto: UpdateDoctorDto) {
-    return `This action updates a #${id} doctor`;
+  async update(
+    id: number,
+    updateDoctorDto: UpdateDoctorDto,
+    avatar: Express.Multer.File,
+  ) {
+    // tìm doctor theo id
+    const doctorFound = await this.doctorRepo.findOne({
+      where: {
+        doctor_id: id,
+      },
+    });
+
+    if (!doctorFound) {
+      throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
+    }
+
+    // kiểm tra số điện thoại có trùng với các doctor khác hay không
+    if (Object.keys(updateDoctorDto).includes('phone_number')) {
+      const checkPhoneDuplicate = await this.doctorRepo.count({
+        where: {
+          phone_number: updateDoctorDto.phone_number,
+          doctor_id: Not(id),
+        },
+      });
+      if (checkPhoneDuplicate > 0)
+        throw new ConflictException(ERROR_MESSAGE.PHONE_NUMBER_EXISTS);
+    }
+
+    // kiểm tra email có trùng với các doctor khác hay không
+    if (Object.keys(updateDoctorDto).includes('email')) {
+      const checkEmailDuplicate = await this.doctorRepo.count({
+        where: {
+          email: updateDoctorDto.email,
+          doctor_id: Not(id),
+        },
+      });
+      if (checkEmailDuplicate > 0)
+        throw new ConflictException(ERROR_MESSAGE.EMAIL_EXISTS);
+    }
+
+    // tạo transaction
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    let uploadResult: { secure_url: string; public_id: string } | null = null;
+
+    // giữ lại url ảnh cũ để xóa
+    const oldAvatarUrl = doctorFound.avatar_url;
+
+    try {
+      // 1. Upload ảnh mới nếu có
+      if (avatar) {
+        uploadResult = await this.cloudinaryService.uploadFile(avatar);
+      }
+
+      // 2. Update DB
+      // merge các giá trị từ DTO
+      Object.assign(doctorFound, updateDoctorDto, {
+        ...(uploadResult && { avatar_url: uploadResult.secure_url }),
+        ...(updateDoctorDto.specialization_id && {
+          specialty: { specialization_id: updateDoctorDto.specialization_id },
+        }),
+      });
+
+      await queryRunner.manager.save(doctorFound);
+
+      // 3. Commit transaction
+      await queryRunner.commitTransaction();
+
+      // 4. Sau khi commit thành công mới xóa ảnh cũ
+      if (avatar && oldAvatarUrl) {
+        await this.cloudinaryService.deleteFile(oldAvatarUrl);
+      }
+    } catch (error) {
+      console.log('check error::', error.message);
+      await queryRunner.rollbackTransaction();
+
+      // cleanup ảnh mới nếu DB fail
+      if (uploadResult?.public_id) {
+        await this.cloudinaryService.deleteFile(uploadResult.public_id);
+      }
+
+      throw new InternalServerErrorException(
+        ERROR_MESSAGE.INTERNAL_ERROR_SERVER,
+      );
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   remove(id: number) {

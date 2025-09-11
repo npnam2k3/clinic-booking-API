@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Put,
 } from '@nestjs/common';
 import { DoctorsService } from './doctors.service';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
@@ -20,6 +21,8 @@ import { multerOptions } from 'src/configs/multer.config';
 import { Permissions } from 'src/common/decorators/permission.decorator';
 import { Action } from 'src/common/enums/action.enum';
 import { Subject } from 'src/common/enums/subject.enum';
+import { ResponseMessage } from 'src/common/decorators/response.decorator';
+import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
 
 @Controller('doctors')
 export class DoctorsController {
@@ -48,9 +51,18 @@ export class DoctorsController {
     return this.doctorsService.findOne(+id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDoctorDto: UpdateDoctorDto) {
-    return this.doctorsService.update(+id, updateDoctorDto);
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.update, subject: Subject.doctor })
+  // validate file
+  @UseInterceptors(FileInterceptor('avatar', multerOptions))
+  @ResponseMessage(RESPONSE_MESSAGE.UPDATE)
+  update(
+    @Param('id') id: string,
+    @Body() updateDoctorDto: UpdateDoctorDto,
+    @UploadedFile() avatar: Express.Multer.File,
+  ) {
+    return this.doctorsService.update(+id, updateDoctorDto, avatar);
   }
 
   @Delete(':id')
