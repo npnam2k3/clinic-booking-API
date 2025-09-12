@@ -44,4 +44,12 @@ export const ERROR_MESSAGE = {
   SPECIALIZATION_NOT_FOUND: 'Không tìm thấy chuyên khoa',
 
   DOCTOR_NOT_FOUND: 'Không tìm thấy thông tin bác sĩ',
+
+  WORK_SCHEDULE_TIME_INVALID: (day: string) =>
+    `Thời gian lịch làm việc của ngày ${day} không hợp lệ`,
+
+  DUPLICATED_WORK_SCHEDULE: (day: string) => `Ngày làm việc ${day} bị trùng`,
+
+  WORK_SCHEDULE_EXISTS_IN_DB: (day: string, doctorName: string) =>
+    `Ngày làm việc ${day} của bác sĩ ${doctorName} đã tồn tại`,
 };
