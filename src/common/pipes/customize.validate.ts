@@ -16,7 +16,8 @@ export const CustomValidationPipe = new ValidationPipe({
       return {
         field: error.property,
         message:
-          Object.values(constraints).reverse().join('. ') || 'Invalid input', // Nếu không có lỗi isNotEmpty thì lấy lỗi khác
+          Object.values(constraints).reverse().join('. ') ||
+          'Dữ liệu không hợp lệ', // Nếu không có lỗi isNotEmpty thì lấy lỗi khác
       };
     });
 
@@ -25,4 +26,5 @@ export const CustomValidationPipe = new ValidationPipe({
     });
   },
   whitelist: true, // loại bỏ các trường không có trong dto trong req
+  transform: true,
 });

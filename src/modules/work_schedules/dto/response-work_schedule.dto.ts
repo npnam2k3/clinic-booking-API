@@ -6,7 +6,7 @@ export class WorkScheduleResponseDto {
   schedule_id: number;
 
   @Expose()
-  day_of_week: number;
+  day_of_week: string;
 
   @Expose()
   start_time: string;

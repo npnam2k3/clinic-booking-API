@@ -17,8 +17,8 @@ export class WorkSchedule {
   @PrimaryGeneratedColumn()
   schedule_id: number;
 
-  @Column({ type: 'int' })
-  day_of_week: number;
+  @Column({ type: 'varchar' })
+  day_of_week: string;
 
   @Column({ type: 'time' })
   start_time: string;
