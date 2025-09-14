@@ -42,6 +42,9 @@ export class WorkSchedulesController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.delete, subject: Subject.work_schedule })
+  @ResponseMessage(RESPONSE_MESSAGE.DELETE)
   remove(@Param('id') id: string) {
     return this.workSchedulesService.remove(+id);
   }

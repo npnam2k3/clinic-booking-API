@@ -94,8 +94,18 @@ export class WorkSchedulesService {
     await this.workScheduleRepo.save(updatedSchedule);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} workSchedule`;
+  async remove(id: number) {
+    const workScheduleFound = await this.workScheduleRepo.count({
+      where: {
+        schedule_id: id,
+      },
+    });
+    if (workScheduleFound < 1) {
+      throw new NotFoundException(
+        ERROR_MESSAGE.WORK_SCHEDULE_NOT_FOUND(id.toString()),
+      );
+    }
+    await this.workScheduleRepo.softDelete(id);
   }
 
   // hàm kiểm tra thời gian hợp lệ start_time < end_time
