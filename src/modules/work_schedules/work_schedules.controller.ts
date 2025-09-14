@@ -30,12 +30,15 @@ export class WorkSchedulesController {
     return this.workSchedulesService.create(createWorkScheduleDto);
   }
 
-  @Patch(':id')
+  @Patch(':doctor_id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.update, subject: Subject.work_schedule })
+  @ResponseMessage(RESPONSE_MESSAGE.UPDATE)
   update(
-    @Param('id') id: string,
+    @Param('doctor_id') doctorId: string,
     @Body() updateWorkScheduleDto: UpdateWorkScheduleDto,
   ) {
-    return this.workSchedulesService.update(+id, updateWorkScheduleDto);
+    return this.workSchedulesService.update(+doctorId, updateWorkScheduleDto);
   }
 
   @Delete(':id')

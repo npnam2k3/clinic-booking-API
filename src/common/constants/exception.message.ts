@@ -52,4 +52,9 @@ export const ERROR_MESSAGE = {
 
   WORK_SCHEDULE_EXISTS_IN_DB: (day: string, doctorName: string) =>
     `Ngày làm việc ${day} của bác sĩ ${doctorName} đã tồn tại`,
+
+  INVALID_INPUT: 'Dữ liệu đầu vào không hợp lệ',
+
+  WORK_SCHEDULE_NOT_FOUND: (entity: string) =>
+    `Lịch làm việc ID=${entity} không tồn tại`,
 };

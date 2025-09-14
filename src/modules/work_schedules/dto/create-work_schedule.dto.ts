@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-const REGEX_TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
+export const REGEX_TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export class CreateWorkScheduleDto {
   @IsArray({ message: 'Danh sách các ngày làm việc không hợp lệ' })
   @ArrayMinSize(1, { message: 'Phải có ít nhất 1 ngày làm việc' })
