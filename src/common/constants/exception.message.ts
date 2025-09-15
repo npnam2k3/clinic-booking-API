@@ -57,4 +57,5 @@ export const ERROR_MESSAGE = {
 
   WORK_SCHEDULE_NOT_FOUND: (entity: string) =>
     `Lịch làm việc ID=${entity} không tồn tại`,
+  WORK_SCHEDULE_NOT_FOUND_STRING: 'Lịch làm việc không tồn tại',
 };

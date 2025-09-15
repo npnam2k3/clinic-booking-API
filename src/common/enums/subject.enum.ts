@@ -4,4 +4,5 @@ export enum Subject {
   staff = 'staff',
   specialties = 'specialties',
   work_schedule = 'work_schedule',
+  doctor_slot = 'doctor_slot',
 }
