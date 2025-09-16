@@ -102,8 +102,19 @@ export class DoctorSlotsService {
     }
   }
 
-  update(id: number, updateDoctorSlotDto: UpdateDoctorSlotDto) {
-    return `This action updates a #${id} doctorSlot`;
+  // hàm cập nhật trạng thái ca khám
+  async update(id: number, updateDoctorSlotDto: UpdateDoctorSlotDto) {
+    const { status } = updateDoctorSlotDto;
+
+    //  kiểm tra slot tồn tại
+    const slot = await this.doctorSlotRepo.findOne({
+      where: {
+        slot_id: id,
+      },
+    });
+    if (!slot) throw new NotFoundException(ERROR_MESSAGE.DOCTOR_SLOT_NOT_FOUND);
+    slot.status = status;
+    await this.doctorSlotRepo.save(slot);
   }
 
   remove(id: number) {

@@ -32,6 +32,9 @@ export class DoctorSlotsController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.update, subject: Subject.doctor_slot })
+  @ResponseMessage(RESPONSE_MESSAGE.UPDATE)
   update(
     @Param('id') id: string,
     @Body() updateDoctorSlotDto: UpdateDoctorSlotDto,

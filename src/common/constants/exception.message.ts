@@ -58,4 +58,11 @@ export const ERROR_MESSAGE = {
   WORK_SCHEDULE_NOT_FOUND: (entity: string) =>
     `Lịch làm việc ID=${entity} không tồn tại`,
   WORK_SCHEDULE_NOT_FOUND_STRING: 'Lịch làm việc không tồn tại',
+
+  DOCTOR_SLOT_NOT_FOUND: 'Không tìm thấy ca khám',
+
+  SLOT_HAS_BEEN_BOOKED_NOT_ALLOW_UPDATE:
+    'Ca khám đã được đặt không thể cập nhật',
+
+  SLOT_TIME_INVALID: 'Thời gian ca khám không hợp lệ',
 };
