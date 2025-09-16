@@ -17,6 +17,7 @@ import { In, Repository } from 'typeorm';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import { DayOfWeek } from 'src/modules/work_schedules/enum';
 import { Doctor } from 'src/modules/doctors/entities/doctor.entity';
+import { checkTimeValid } from 'src/common/utils/handleTime';
 
 @Injectable()
 export class WorkSchedulesService {
@@ -108,17 +109,6 @@ export class WorkSchedulesService {
     await this.workScheduleRepo.softDelete(id);
   }
 
-  // hàm kiểm tra thời gian hợp lệ start_time < end_time
-  private checkTimeValid = (start_time: string, end_time: string): boolean => {
-    const [sh, sm] = start_time.split(':').map(Number);
-    const [eh, em] = end_time.split(':').map(Number);
-
-    const start_minutes = sh * 60 + sm;
-    const end_minutes = eh * 60 + em;
-
-    return start_minutes < end_minutes;
-  };
-
   // hàm kiểm tra thời gian của các ngày xem có hợp lệ hay không và kiểm tra xem có ngày làm việc nào bị trùng không
   private validateWorkScheduleTimes(schedules: DayWorkDto[]): void {
     // những ngày đã xuất hiện
@@ -128,7 +118,7 @@ export class WorkSchedulesService {
 
     for (const { day_of_week, start_time, end_time } of schedules) {
       // check start < end
-      if (!this.checkTimeValid(start_time, end_time)) {
+      if (!checkTimeValid(start_time, end_time)) {
         daysInvalid.add(day_of_week);
       }
 
