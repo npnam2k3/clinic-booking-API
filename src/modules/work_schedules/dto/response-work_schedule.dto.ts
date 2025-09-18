@@ -1,5 +1,4 @@
-import { Expose, Type } from 'class-transformer';
-import { DoctorSlotResponseDto } from 'src/modules/doctor_slots/dto/response-doctor_slot.dto';
+import { Expose } from 'class-transformer';
 
 export class WorkScheduleResponseDto {
   @Expose()
@@ -22,8 +21,4 @@ export class WorkScheduleResponseDto {
 
   @Expose()
   createdAt: Date;
-
-  @Expose()
-  @Type(() => DoctorSlotResponseDto)
-  doctor_slots: DoctorSlotResponseDto[];
 }

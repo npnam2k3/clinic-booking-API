@@ -7,3 +7,8 @@ export enum DayOfWeek {
   Saturday = 'Thứ Bảy',
   Sunday = 'Chủ Nhật',
 }
+
+export enum StatusWorkSchedule {
+  active = 'active',
+  inactive = 'inactive',
+}

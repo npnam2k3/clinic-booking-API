@@ -1,5 +1,5 @@
-import { DoctorSlot } from 'src/modules/doctor_slots/entities/doctor_slot.entity';
 import { Doctor } from 'src/modules/doctors/entities/doctor.entity';
+import { StatusWorkSchedule } from 'src/modules/work_schedules/enum';
 import {
   Column,
   CreateDateColumn,
@@ -7,7 +7,6 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
-  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -32,6 +31,19 @@ export class WorkSchedule {
   @Column({ type: 'text' })
   note: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  effective_date: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  expire_date: string;
+
+  @Column({
+    type: 'enum',
+    enum: StatusWorkSchedule,
+    default: StatusWorkSchedule.active,
+  })
+  status: StatusWorkSchedule;
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -45,7 +57,4 @@ export class WorkSchedule {
   @ManyToOne(() => Doctor, (doctor) => doctor.work_schedules)
   @JoinColumn({ name: 'doctor_id', referencedColumnName: 'doctor_id' })
   doctor: Doctor;
-
-  @OneToMany(() => DoctorSlot, (doctor_slot) => doctor_slot.work_schedule)
-  doctor_slots: DoctorSlot[];
 }

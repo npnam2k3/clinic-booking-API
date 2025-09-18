@@ -19,9 +19,6 @@ export class Appointment {
   @PrimaryGeneratedColumn()
   appointment_id: number;
 
-  @Column({ type: 'date' })
-  appointment_date: Date;
-
   @Column({ type: 'enum', enum: StatusAppointment })
   status: StatusAppointment;
 

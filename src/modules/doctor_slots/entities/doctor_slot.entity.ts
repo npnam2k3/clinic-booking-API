@@ -1,7 +1,6 @@
 import { Appointment } from 'src/modules/appointments/entities/appointment.entity';
 import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
 import { Doctor } from 'src/modules/doctors/entities/doctor.entity';
-import { WorkSchedule } from 'src/modules/work_schedules/entities/work_schedule.entity';
 import {
   Column,
   CreateDateColumn,
@@ -25,6 +24,15 @@ export class DoctorSlot {
   @Column({ type: 'time' })
   end_at: string;
 
+  @Column({ type: 'varchar' })
+  slot_date: string;
+
+  @Column({ nullable: true })
+  source_type: string;
+
+  @Column({ type: 'int', nullable: true })
+  source_id: number;
+
   @Column({ type: 'enum', enum: StatusDoctorSlot })
   status: StatusDoctorSlot;
 
@@ -41,10 +49,6 @@ export class DoctorSlot {
   @ManyToOne(() => Doctor, (doctor) => doctor.doctor_slots)
   @JoinColumn({ name: 'doctor_id', referencedColumnName: 'doctor_id' })
   doctor: Doctor;
-
-  @ManyToOne(() => WorkSchedule, (work_schedule) => work_schedule.doctor_slots)
-  @JoinColumn({ name: 'schedule_id', referencedColumnName: 'schedule_id' })
-  work_schedule: WorkSchedule;
 
   @OneToOne(() => Appointment, (appointment) => appointment.doctor_slot)
   appointment: Appointment;

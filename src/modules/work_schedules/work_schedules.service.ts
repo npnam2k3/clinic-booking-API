@@ -29,7 +29,8 @@ export class WorkSchedulesService {
     private readonly doctorRepo: Repository<Doctor>,
   ) {}
   async create(createWorkScheduleDto: CreateWorkScheduleDto) {
-    const { doctor_id, schedules, slot_duration } = createWorkScheduleDto;
+    const { doctor_id, schedules, slot_duration, effective_date } =
+      createWorkScheduleDto;
     // kiểm tra end_time phải sau start_time
     // chỉ cho phép khoảng thời gian trong vòng 1 ngày, không được tính ngày hôm sau
     // nghĩa là từ 00:00 - 23:59
@@ -53,6 +54,7 @@ export class WorkSchedulesService {
         slot_duration,
         start_time: day.start_time,
         end_time: day.end_time,
+        effective_date,
         note: day.note,
         doctor: {
           doctor_id: doctorFound.doctor_id,

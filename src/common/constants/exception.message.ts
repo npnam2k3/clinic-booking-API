@@ -65,4 +65,6 @@ export const ERROR_MESSAGE = {
     'Ca khám đã được đặt không thể cập nhật',
 
   SLOT_TIME_INVALID: 'Thời gian ca khám không hợp lệ',
+
+  SLOT_EXISTS: 'Ca khám đã tồn tại. Thất bại',
 };
