@@ -76,4 +76,6 @@ export const ERROR_MESSAGE = {
     'Thời gian đặt lịch trước tối thiếu 2 tiếng lịch khám bắt đầu',
 
   APPOINTMENT_NOT_FOUND: 'Không tìm thấy lịch khám',
+
+  APPOINTMENT_HAS_BEEN_CANCELLED: 'Lịch khám này đã bị hủy trước đó',
 };

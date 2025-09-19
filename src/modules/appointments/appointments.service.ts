@@ -158,6 +158,11 @@ export class AppointmentsService {
     if (!appointmentFound)
       throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
 
+    // nếu đã hủy thì báo lỗi
+    if (appointmentFound.status === StatusAppointment.CANCELED)
+      throw new BadRequestException(
+        ERROR_MESSAGE.APPOINTMENT_HAS_BEEN_CANCELLED,
+      );
     // tạo transaction
     return await this.datasource.transaction(async (manager) => {
       // tạo mới appointment_cancellation
@@ -230,6 +235,29 @@ export class AppointmentsService {
       ...appointmentFound,
       appointment_cancellation: appointmentCancellationFormat,
     };
+  }
+
+  // hàm lấy danh sách lịch sử đặt lịch của user đang đăng nhập
+  async getHistoryBookingByUserLogin(userId: number) {
+    const listAppointments = await this.appointmentRepo.find({
+      where: {
+        patient: {
+          contact: {
+            user_account: {
+              user_id: userId,
+            },
+          },
+        },
+      },
+      relations: {
+        doctor_slot: {
+          doctor: true,
+        },
+        patient: true,
+        appointment_cancellation: true,
+      },
+    });
+    return listAppointments;
   }
 
   // update(id: number, updateAppointmentDto: UpdateAppointmentDto) {

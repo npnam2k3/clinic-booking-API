@@ -59,6 +59,13 @@ export class AppointmentsController {
     return this.appointmentsService.findAll();
   }
 
+  @Get('history')
+  @UseGuards(JwtAuthGuard)
+  getHistoryBookingByUserLogin(@Request() req) {
+    const { sub } = req.user;
+    return this.appointmentsService.getHistoryBookingByUserLogin(+sub);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
   @Permissions({ action: Action.read, subject: Subject.appointment })
@@ -71,9 +78,4 @@ export class AppointmentsController {
   // update(@Param('id') id: string, @Body() updateAppointmentDto: UpdateAppointmentDto) {
   //   return this.appointmentsService.update(+id, updateAppointmentDto);
   // }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.appointmentsService.remove(+id);
-  }
 }
