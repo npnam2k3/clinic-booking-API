@@ -6,4 +6,5 @@ export enum Action {
   lock = 'lock',
   unlock = 'unlock',
   confirm = 'confirm',
+  cancel = 'cancel',
 }

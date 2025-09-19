@@ -18,6 +18,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { StatusAppointment } from 'src/modules/appointments/enum';
 import { toDTO } from 'src/common/utils/mapToDto';
 import { AppointmentResponseDto } from 'src/modules/appointments/dto/response-appointment.dto';
+import { CancellationAppointmentDto } from 'src/modules/appointments/dto/cancellation-appointment.dto';
+import { AppointmentCancellation } from 'src/modules/appointments/entities/appointment_cancellations.entity';
 
 @Injectable()
 export class AppointmentsService {
@@ -125,6 +127,7 @@ export class AppointmentsService {
     });
   }
 
+  // hàm xác nhận lịch khám
   async confirm(id: number) {
     // tìm appointment theo id
     const appointmentFound = await this.appointmentRepo.findOne({
@@ -136,6 +139,51 @@ export class AppointmentsService {
       throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
     appointmentFound.status = StatusAppointment.CONFIRMED;
     await this.appointmentRepo.save(appointmentFound);
+  }
+
+  // hàm hủy lịch khám - dành cho phía quản trị
+  async cancelByAdmin(
+    id: number,
+    cancellationAppointmentDto: CancellationAppointmentDto,
+    user_id: number,
+  ) {
+    const { cancellation_party, note, reason_code } =
+      cancellationAppointmentDto;
+    // tìm theo id
+    const appointmentFound = await this.appointmentRepo.findOne({
+      where: {
+        appointment_id: id,
+      },
+    });
+    if (!appointmentFound)
+      throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
+
+    // tạo transaction
+    return await this.datasource.transaction(async (manager) => {
+      // tạo mới appointment_cancellation
+      const newAppointmentCancellation = manager.create(
+        AppointmentCancellation,
+        {
+          appointment_id: id,
+          cancellation_party,
+          reason_code,
+          note,
+          user_account: {
+            user_id,
+          },
+          appointment: {
+            appointment_id: id,
+          },
+        },
+      );
+
+      await manager.save(newAppointmentCancellation);
+
+      // cập nhật trường status thành cancelled trong bảng appointments
+      await manager.update(Appointment, id, {
+        status: StatusAppointment.CANCELED,
+      });
+    });
   }
 
   findAll() {

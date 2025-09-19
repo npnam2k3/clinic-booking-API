@@ -3,6 +3,7 @@ import { CancellationParty, ReasonCode } from 'src/modules/appointments/enum';
 import { UserAccount } from 'src/modules/users/entities/user_account.entity';
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinColumn,
   ManyToOne,
@@ -24,7 +25,7 @@ export class AppointmentCancellation {
   @Column({ type: 'text' })
   note: string;
 
-  @Column({ type: 'datetime' })
+  @CreateDateColumn()
   cancelled_at: Date;
 
   // relation

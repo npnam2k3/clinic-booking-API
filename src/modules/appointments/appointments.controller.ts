@@ -18,6 +18,7 @@ import { Action } from 'src/common/enums/action.enum';
 import { Subject } from 'src/common/enums/subject.enum';
 import { ResponseMessage } from 'src/common/decorators/response.decorator';
 import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
+import { CancellationAppointmentDto } from 'src/modules/appointments/dto/cancellation-appointment.dto';
 
 @Controller('appointments')
 export class AppointmentsController {
@@ -34,6 +35,23 @@ export class AppointmentsController {
   @ResponseMessage(RESPONSE_MESSAGE.CONFIRM_APPOINTMENT)
   confirm(@Param('id') id: string) {
     return this.appointmentsService.confirm(+id);
+  }
+
+  @Patch('admin/cancel/:id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.cancel, subject: Subject.appointment })
+  @ResponseMessage(RESPONSE_MESSAGE.CANCEL_APPOINTMENT)
+  cancelByAdmin(
+    @Param('id') id: string,
+    @Body() cancellationAppointmentDto: CancellationAppointmentDto,
+    @Request() req,
+  ) {
+    const { sub } = req.user;
+    return this.appointmentsService.cancelByAdmin(
+      +id,
+      cancellationAppointmentDto,
+      +sub,
+    );
   }
 
   @Get()
