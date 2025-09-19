@@ -3,7 +3,11 @@ import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { Appointment } from 'src/modules/appointments/entities/appointment.entity';
 import { DataSource, Repository } from 'typeorm';
 import { Contact } from 'src/modules/users/entities/contact.entity';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { DoctorSlot } from 'src/modules/doctor_slots/entities/doctor_slot.entity';
 import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
@@ -119,6 +123,19 @@ export class AppointmentsService {
       });
       return toDTO(AppointmentResponseDto, newAppointment);
     });
+  }
+
+  async confirm(id: number) {
+    // tìm appointment theo id
+    const appointmentFound = await this.appointmentRepo.findOne({
+      where: {
+        appointment_id: id,
+      },
+    });
+    if (!appointmentFound)
+      throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
+    appointmentFound.status = StatusAppointment.CONFIRMED;
+    await this.appointmentRepo.save(appointmentFound);
   }
 
   findAll() {

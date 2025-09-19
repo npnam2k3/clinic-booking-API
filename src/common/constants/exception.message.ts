@@ -74,4 +74,6 @@ export const ERROR_MESSAGE = {
 
   BOOKING_TIME_TOO_SHORT:
     'Thời gian đặt lịch trước tối thiếu 2 tiếng lịch khám bắt đầu',
+
+  APPOINTMENT_NOT_FOUND: 'Không tìm thấy lịch khám',
 };

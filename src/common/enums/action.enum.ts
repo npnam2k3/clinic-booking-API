@@ -5,4 +5,5 @@ export enum Action {
   delete = 'delete',
   lock = 'lock',
   unlock = 'unlock',
+  confirm = 'confirm',
 }
