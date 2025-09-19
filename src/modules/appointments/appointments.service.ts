@@ -1,10 +1,124 @@
-import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
+import { Appointment } from 'src/modules/appointments/entities/appointment.entity';
+import { DataSource, Repository } from 'typeorm';
+import { Contact } from 'src/modules/users/entities/contact.entity';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { DoctorSlot } from 'src/modules/doctor_slots/entities/doctor_slot.entity';
+import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
+import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
+import moment from 'moment';
+import { Patient } from 'src/modules/patients/entities/patient.entity';
+
+import { v4 as uuidv4 } from 'uuid';
+import { StatusAppointment } from 'src/modules/appointments/enum';
+import { toDTO } from 'src/common/utils/mapToDto';
+import { AppointmentResponseDto } from 'src/modules/appointments/dto/response-appointment.dto';
 
 @Injectable()
 export class AppointmentsService {
-  create(createAppointmentDto: CreateAppointmentDto) {
-    return 'This action adds a new appointment';
+  constructor(
+    @InjectRepository(Appointment)
+    private readonly appointmentRepo: Repository<Appointment>,
+
+    @InjectRepository(Contact)
+    private readonly contactRepo: Repository<Contact>,
+
+    @InjectRepository(DoctorSlot)
+    private readonly doctorSlotRepo: Repository<DoctorSlot>,
+
+    private readonly datasource: DataSource,
+  ) {}
+  async create(createAppointmentDto: CreateAppointmentDto) {
+    const {
+      slot_id,
+      phone_number,
+      address,
+      date_of_birth,
+      fullname,
+      fullname_contact,
+      gender,
+      note,
+    } = createAppointmentDto;
+
+    // tạo transaction
+    return await this.datasource.transaction(async (manager) => {
+      // kiểm tra slot hiện tại đã có ai đặt chưa
+      const checkSlotAvailable = await manager.findOne(DoctorSlot, {
+        where: {
+          slot_id,
+          status: StatusDoctorSlot.AVAILABLE,
+        },
+      });
+      if (!checkSlotAvailable)
+        throw new BadRequestException(ERROR_MESSAGE.SLOT_UNAVAILABLE);
+
+      // đảm bảo đặt lịch trước 7 ngày
+      const isWithinOneWeek = this.isWithinOneWeek(
+        checkSlotAvailable.slot_date,
+      );
+      if (!isWithinOneWeek) {
+        throw new BadRequestException(ERROR_MESSAGE.BOOKING_DATE_TOO_FAR);
+      }
+
+      // đảm bảo đặt trước ít nhất 2 tiếng lịch khám bắt đầu
+      const isAtLeastTwoHours = this.isAtLeastTwoHoursLater(
+        checkSlotAvailable.slot_date,
+        checkSlotAvailable.start_at,
+      );
+      if (!isAtLeastTwoHours) {
+        throw new BadRequestException(ERROR_MESSAGE.BOOKING_TIME_TOO_SHORT);
+      }
+
+      // kiểm tra phone_number trong bảng contact
+      const contactFoundByPhoneNumber = await manager.findOne(Contact, {
+        where: {
+          phone_number,
+        },
+      });
+
+      let contact: Contact;
+      if (contactFoundByPhoneNumber) {
+        // nếu có thì gán lại contact
+        contact = contactFoundByPhoneNumber;
+      } else {
+        // nếu không có thì tạo mới và lưu vào bảng contact
+        contact = manager.create(Contact, {
+          fullname: fullname_contact,
+          phone_number: phone_number,
+          address,
+        });
+        await manager.save(Contact, contact);
+      }
+
+      // tạo patient mới
+      const newPatient = manager.create(Patient, {
+        patient_code: this.generatePatientCode(),
+        fullname,
+        date_of_birth,
+        gender,
+        address,
+        contact,
+      });
+      await manager.save(Patient, newPatient);
+
+      // tạo appointment mới
+      const newAppointment = manager.create(Appointment, {
+        patient: newPatient,
+        doctor_slot: {
+          slot_id,
+        },
+        note,
+        status: StatusAppointment.PENDING,
+      });
+      await manager.save(Appointment, newAppointment);
+
+      // cập nhật trạng thái slot thành booked
+      await manager.update(DoctorSlot, slot_id, {
+        status: StatusDoctorSlot.BOOKED,
+      });
+      return toDTO(AppointmentResponseDto, newAppointment);
+    });
   }
 
   findAll() {
@@ -21,5 +135,33 @@ export class AppointmentsService {
 
   remove(id: number) {
     return `This action removes a #${id} appointment`;
+  }
+
+  // hàm kiểm tra ngày đặt lịch có nhỏ hơn 7 ngày hay không
+  private isWithinOneWeek(bookingDate: string) {
+    const now = moment();
+    const oneWeekLater = moment().add(7, 'days');
+    const date = moment(bookingDate, 'DD/MM/YYYY');
+
+    return (
+      date.isSameOrAfter(now, 'day') && date.isSameOrBefore(oneWeekLater, 'day')
+    );
+  }
+
+  // hàm kiểm tra thời gian đặt lịch trước thời gian khám tối thiểu 2 tiếng
+  private isAtLeastTwoHoursLater(appointmentDate, startTime) {
+    const minAllowed = moment().add(2, 'hours');
+
+    const appointmentDateTime = moment(
+      `${appointmentDate} ${startTime}`,
+      'DD/MM/YYYY HH:mm:ss',
+    );
+
+    return appointmentDateTime.isSameOrAfter(minAllowed);
+  }
+
+  // hàm sinh mã bệnh nhân
+  private generatePatientCode(): string {
+    return `PAC-${uuidv4()}`;
   }
 }

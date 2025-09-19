@@ -67,4 +67,11 @@ export const ERROR_MESSAGE = {
   SLOT_TIME_INVALID: 'Thời gian ca khám không hợp lệ',
 
   SLOT_EXISTS: 'Ca khám đã tồn tại. Thất bại',
+
+  SLOT_UNAVAILABLE: 'Ca khám không có sẵn',
+
+  BOOKING_DATE_TOO_FAR: 'Chỉ được đặt lịch trước tối đa 7 ngày',
+
+  BOOKING_TIME_TOO_SHORT:
+    'Thời gian đặt lịch trước tối thiếu 2 tiếng lịch khám bắt đầu',
 };
