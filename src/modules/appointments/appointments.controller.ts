@@ -60,6 +60,9 @@ export class AppointmentsController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.appointment })
+  @ResponseMessage(RESPONSE_MESSAGE.GET)
   findOne(@Param('id') id: string) {
     return this.appointmentsService.findOne(+id);
   }

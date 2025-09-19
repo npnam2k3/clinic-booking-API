@@ -190,8 +190,46 @@ export class AppointmentsService {
     return `This action returns all appointments`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} appointment`;
+  // hàm xem chi tiết appointment - dành cho phía quản trị
+  async findOne(id: number) {
+    const appointmentFound = await this.appointmentRepo.findOne({
+      where: {
+        appointment_id: id,
+      },
+      relations: {
+        doctor_slot: {
+          doctor: true,
+        },
+        patient: {
+          contact: true,
+        },
+        appointment_cancellation: {
+          user_account: {
+            contact: true,
+          },
+        },
+      },
+    });
+    if (!appointmentFound)
+      throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
+
+    const appointmentCancellationFormat = {
+      ...appointmentFound.appointment_cancellation,
+      user_account: {
+        email: appointmentFound.appointment_cancellation?.user_account.email,
+        fullname:
+          appointmentFound.appointment_cancellation?.user_account.contact
+            .fullname,
+        phone_number:
+          appointmentFound.appointment_cancellation?.user_account.contact
+            .phone_number,
+      },
+    };
+
+    return {
+      ...appointmentFound,
+      appointment_cancellation: appointmentCancellationFormat,
+    };
   }
 
   // update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
