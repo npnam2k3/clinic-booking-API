@@ -21,6 +21,7 @@ import { CancellationAppointmentDto } from 'src/modules/appointments/dto/cancell
 import { AppointmentCancellation } from 'src/modules/appointments/entities/appointment_cancellations.entity';
 
 import moment, { unitOfTime } from 'moment';
+import { toLocalTime } from 'src/common/utils/handleTime';
 
 @Injectable()
 export class AppointmentsService {
@@ -267,8 +268,56 @@ export class AppointmentsService {
     });
   }
 
-  findAll() {
-    return `This action returns all appointments`;
+  // hàm lấy danh sách các lịch khám kết hợp tìm kiếm theo tên bệnh nhân, lọc theo trạng thái lịch khám, phân trang
+  async findAll({ pageNum, limitNum, keyword, status, orderBy }) {
+    const queryBuilder = this.appointmentRepo
+      .createQueryBuilder('appointment')
+      .leftJoinAndSelect('appointment.doctor_slot', 'slot')
+      .leftJoinAndSelect('appointment.patient', 'patient');
+
+    // 1. search
+    if (keyword) {
+      // tìm kiếm theo tên bệnh nhân
+      queryBuilder.andWhere('patient.fullname LIKE :keyword', {
+        keyword: `%${keyword}%`,
+      });
+    }
+
+    if (status) {
+      // lọc theo trạng thái lịch khám
+      queryBuilder.andWhere('appointment.status LIKE :status', {
+        status: `%${status}%`,
+      });
+    }
+
+    //2. sort
+    queryBuilder.orderBy(`appointment.createdAt`, orderBy);
+
+    //3. pagination
+    const totalRecords = await queryBuilder.getCount();
+    const appointments = await queryBuilder
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
+      .getMany();
+    const formattedAppointments = appointments.map((a) => {
+      return {
+        ...a,
+        createdAt: toLocalTime(a.createdAt),
+      };
+    });
+
+    return {
+      appointments: formattedAppointments,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limitNum),
+      conditions: {
+        pageNum,
+        limitNum,
+        keyword,
+        status,
+        orderBy,
+      },
+    };
   }
 
   // hàm xem chi tiết appointment - dành cho phía quản trị
@@ -296,6 +345,9 @@ export class AppointmentsService {
 
     const appointmentCancellationFormat = {
       ...appointmentFound.appointment_cancellation,
+      cancelled_at: toLocalTime(
+        appointmentFound.appointment_cancellation?.cancelled_at,
+      ),
       user_account: {
         email: appointmentFound.appointment_cancellation?.user_account.email,
         fullname:
@@ -309,6 +361,7 @@ export class AppointmentsService {
 
     return {
       ...appointmentFound,
+      createdAt: toLocalTime(appointmentFound.createdAt),
       appointment_cancellation: appointmentCancellationFormat,
     };
   }
@@ -334,10 +387,6 @@ export class AppointmentsService {
       },
     });
     return listAppointments;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} appointment`;
   }
 
   // hàm kiểm tra ngày đặt lịch có nhỏ hơn 7 ngày hay không

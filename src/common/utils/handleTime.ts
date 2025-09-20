@@ -1,3 +1,5 @@
+import moment from 'moment-timezone';
+
 // hàm kiểm tra thời gian hợp lệ start_time < end_time
 export const checkTimeValid = (
   start_time: string,
@@ -11,3 +13,16 @@ export const checkTimeValid = (
 
   return start_minutes < end_minutes;
 };
+
+/**
+ * Chuyển đổi sang múi giờ hiện tại của server/user
+ * @param date Thời gian dạng Date hoặc string
+ * @param tz Múi giờ cần hiển thị (default: Asia/Ho_Chi_Minh)
+ * @returns string theo format DD/MM/YYYY HH:mm:ss
+ */
+export function toLocalTime(
+  date: Date | string,
+  tz = 'Asia/Ho_Chi_Minh',
+): string {
+  return moment(date).tz(tz).format('DD/MM/YYYY HH:mm:ss');
+}
