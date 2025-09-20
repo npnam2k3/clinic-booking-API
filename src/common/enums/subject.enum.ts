@@ -6,4 +6,5 @@ export enum Subject {
   work_schedule = 'work_schedule',
   doctor_slot = 'doctor_slot',
   appointment = 'appointment',
+  patient = 'patient',
 }

@@ -81,4 +81,6 @@ export const ERROR_MESSAGE = {
 
   CANCEL_APPOINTMENT_TIME: (entity) =>
     `Chỉ được hủy trước khi lịch khám bắt đầu ít nhất ${entity} tiếng`,
+
+  PATIENT_NOT_FOUND: 'Không tìm thấy thông tin bệnh nhân',
 };
