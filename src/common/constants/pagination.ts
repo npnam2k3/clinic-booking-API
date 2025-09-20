@@ -7,4 +7,8 @@ export const PAGINATION = {
     PAGE_NUMBER: 1,
     LIMIT_NUMBER: 5,
   },
+  APPOINTMENT: {
+    PAGE_NUMBER: 1,
+    LIMIT_NUMBER: 5,
+  },
 };

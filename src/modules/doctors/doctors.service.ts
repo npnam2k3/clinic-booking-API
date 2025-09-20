@@ -140,9 +140,7 @@ export class DoctorsService {
       relations: {
         specialty: true,
         reviews: true,
-        work_schedules: {
-          doctor_slots: true,
-        },
+        work_schedules: true,
       },
     });
     if (!doctorFound)

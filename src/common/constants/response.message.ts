@@ -8,4 +8,6 @@ export const RESPONSE_MESSAGE = {
   UNLOCK: 'Đã mở khóa tài khoản thành công.',
   CHANGE_PASSWORD: 'Đổi mật khẩu thành công, vui lòng đăng nhập lại.',
   SEND_EMAIL: 'Gửi email thành công.',
+  CONFIRM_APPOINTMENT: 'Xác nhận lịch khám thành công',
+  CANCEL_APPOINTMENT: 'Hủy lịch khám thành công',
 };

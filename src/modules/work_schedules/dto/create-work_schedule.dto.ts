@@ -8,8 +8,12 @@ import {
   Matches,
   Min,
   ArrayMinSize,
+  IsDate,
+  Validate,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import moment from 'moment';
+import { IsValidDateConstraint } from 'src/common/utils/validationCustom';
 
 export const REGEX_TIME = /^([01]\d|2[0-3]):([0-5]\d)$/;
 export class CreateWorkScheduleDto {
@@ -26,6 +30,12 @@ export class CreateWorkScheduleDto {
   @IsNumber({}, { message: 'Mã bác sĩ phải là 1 số' })
   @Min(1, { message: 'Mã bác sĩ phải lớn hơn hoặc bằng 1' })
   doctor_id: number;
+
+  @Validate(IsValidDateConstraint, {
+    message:
+      'Ngày áp dụng lịch làm việc không hợp lệ, định dạng phải DD/MM/YYYY',
+  })
+  effective_date: string;
 }
 
 export class DayWorkDto {

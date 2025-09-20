@@ -12,7 +12,7 @@ import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import { WorkSlot } from 'src/modules/work_schedules/type';
 import { WorkSchedule } from 'src/modules/work_schedules/entities/work_schedule.entity';
 import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
-import { DayOfWeek } from 'src/modules/work_schedules/enum';
+import moment from 'moment';
 
 @Injectable()
 export class DoctorSlotsService {
@@ -27,79 +27,96 @@ export class DoctorSlotsService {
   private readonly NOON_BREAK_END = 13 * 60 + 30; // 13:30
 
   async create(createDoctorSlotDto: CreateDoctorSlotDto) {
-    const { doctor_id, schedules } = createDoctorSlotDto;
+    const { doctor_id, from_date, to_date } = createDoctorSlotDto;
 
-    // --- B1: Kiểm tra schedule_id trùng lặp trong input ---
-    const scheduleIds = schedules.map((s) => s.schedule_id);
-    const scheduleIdsUnique = new Set<string>(scheduleIds);
-    if (scheduleIdsUnique.size < scheduleIds.length) {
-      throw new BadRequestException(ERROR_MESSAGE.INVALID_INPUT);
-    }
-
-    // --- B2: Lấy schedules từ DB ---
-    const schedulesFromDB = await this.workScheduleRepo.find({
-      where: { schedule_id: In(scheduleIds) },
-      relations: ['doctor'], // cần để check đúng bác sĩ
-    });
-
-    // Nếu thiếu schedule
-    if (schedulesFromDB.length < scheduleIds.length) {
-      throw new NotFoundException(ERROR_MESSAGE.WORK_SCHEDULE_NOT_FOUND_STRING);
-    }
-    // console.log('schedulesFromDB::', schedulesFromDB);
-
-    // --- B3: Kiểm tra schedule có thuộc đúng doctor ---
-    for (const s of schedulesFromDB) {
-      if (s.doctor.doctor_id !== doctor_id) {
-        throw new BadRequestException(
-          `Lịch làm việc ID=${s.schedule_id} không thuộc về bác sĩ này`,
-        );
-      }
-    }
-
-    // --- B4: Kiểm tra schedule đã được chia slot trước đó chưa ---
-    const exists = await this.doctorSlotRepo.find({
-      where: { work_schedule: { schedule_id: In(scheduleIds) } },
-      relations: {
-        work_schedule: true,
+    // lấy thông tin lịch làm việc của bác sĩ theo id bác sĩ
+    const workScheduleByDoctor = await this.workScheduleRepo.find({
+      where: {
+        doctor: {
+          doctor_id,
+        },
       },
-      select: ['work_schedule'],
     });
 
-    if (exists.length > 0) {
-      const duplicatedIds = new Set<string>(
-        exists.map((e) => DayOfWeek[e.work_schedule['day_of_week'].toString()]),
+    if (workScheduleByDoctor.length < 1)
+      throw new BadRequestException(
+        ERROR_MESSAGE.WORK_SCHEDULE_NOT_FOUND_STRING,
       );
 
+    const fromDate = moment(from_date, 'DD/MM/YYYY');
+    const toDate = moment(to_date, 'DD/MM/YYYY');
+    const filterDate = workScheduleByDoctor.flatMap((w) =>
+      this.getDatesInRange(fromDate, toDate, w.day_of_week),
+    );
+
+    if (filterDate.length < 1) {
       throw new BadRequestException(
-        `Các lịch làm việc sau đã có ca khám rồi: ${Array.from(duplicatedIds).join(', ')}`,
+        ERROR_MESSAGE.WORK_SCHEDULE_NOT_FOUND_STRING,
       );
     }
 
-    // --- B5: Chia lịch khám thành slots ---
+    // --- Chia lịch khám thành slots ---
     let listSlotsToInsertIntoDB: DoctorSlot[] = [];
     for (const {
-      schedule_id,
       start_time,
       end_time,
       slot_duration,
-    } of schedulesFromDB) {
+      day_of_week,
+    } of workScheduleByDoctor) {
       const slots = this.splitSchedule(start_time, end_time, slot_duration);
-      for (const { start, end } of slots) {
-        listSlotsToInsertIntoDB.push(
-          this.doctorSlotRepo.create({
-            work_schedule: { schedule_id },
-            start_at: start,
-            end_at: end,
-            status: StatusDoctorSlot.AVAILABLE,
-            doctor: { doctor_id },
-          }),
-        );
-      }
+      // Lấy tất cả ngày khớp với day_of_week trong khoảng fromDate..toDate
+      const validDates = this.getDatesInRange(fromDate, toDate, day_of_week);
 
-      // --- B6: Lưu vào DB ---
-      await this.doctorSlotRepo.save(listSlotsToInsertIntoDB);
+      for (const date of validDates) {
+        for (const { start, end } of slots) {
+          listSlotsToInsertIntoDB.push(
+            this.doctorSlotRepo.create({
+              start_at: start,
+              end_at: end,
+              status: StatusDoctorSlot.AVAILABLE,
+              doctor: { doctor_id },
+              slot_date: date,
+            }),
+          );
+        }
+      }
     }
+
+    // -- kiểm tra trùng slot trong db trước khi insert --
+    const weekdaysInsertUnique = new Set<string>(
+      listSlotsToInsertIntoDB.map((s) => s.slot_date),
+    );
+    const slotFromDB = await this.doctorSlotRepo.find({
+      where: {
+        slot_date: In([...weekdaysInsertUnique]),
+        doctor: {
+          doctor_id,
+        },
+      },
+    });
+
+    let listInvalidSlot: DoctorSlot[] = [];
+    for (const slotInsert of listSlotsToInsertIntoDB) {
+      for (const slotDB of slotFromDB) {
+        if (slotInsert.slot_date === slotDB.slot_date) {
+          // chuyển thời gian về đúng định dạng để so sánh
+          const insertStart = moment(slotInsert.start_at, 'HH:mm:ss');
+          const insertEnd = moment(slotInsert.end_at, 'HH:mm:ss');
+          const dbStart = moment(slotDB.start_at, 'HH:mm:ss');
+          const dbEnd = moment(slotDB.end_at, 'HH:mm:ss');
+
+          if (insertStart.isBefore(dbEnd) && insertEnd.isAfter(dbStart)) {
+            listInvalidSlot.push(slotInsert);
+          }
+        }
+      }
+    }
+
+    if (listInvalidSlot.length > 0) {
+      throw new BadRequestException(ERROR_MESSAGE.SLOT_EXISTS);
+    }
+
+    await this.doctorSlotRepo.save(listSlotsToInsertIntoDB);
   }
 
   // hàm cập nhật trạng thái ca khám
@@ -198,5 +215,24 @@ export class DoctorSlotsService {
     }
 
     return slots;
+  }
+
+  // hàm tính ngày gần nhất cho 1 thứ trong tuần
+  private getDatesInRange(
+    fromDate: moment.Moment,
+    toDate: moment.Moment,
+    weekday: string,
+  ) {
+    let current = fromDate.clone();
+    const dates: string[] = [];
+
+    while (current.isSameOrBefore(toDate, 'day')) {
+      if (weekday.includes(current.format('dddd'))) {
+        dates.push(current.format('DD/MM/YYYY'));
+        // return current.format('DD/MM/YYYY');
+      }
+      current.add(1, 'day');
+    }
+    return dates;
   }
 }

@@ -21,7 +21,7 @@ export class Contact {
   @Column({ unique: true })
   phone_number: string;
 
-  @Column()
+  @Column({ nullable: true })
   address: string;
 
   @Column()
