@@ -78,4 +78,7 @@ export const ERROR_MESSAGE = {
   APPOINTMENT_NOT_FOUND: 'Không tìm thấy lịch khám',
 
   APPOINTMENT_HAS_BEEN_CANCELLED: 'Lịch khám này đã bị hủy trước đó',
+
+  CANCEL_APPOINTMENT_TIME: (entity) =>
+    `Chỉ được hủy trước khi lịch khám bắt đầu ít nhất ${entity} tiếng`,
 };

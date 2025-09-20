@@ -54,6 +54,22 @@ export class AppointmentsController {
     );
   }
 
+  @Patch('client/cancel/:id')
+  @UseGuards(JwtAuthGuard)
+  @ResponseMessage(RESPONSE_MESSAGE.CANCEL_APPOINTMENT)
+  cancelByClient(
+    @Param('id') id: string,
+    @Body() cancellationAppointmentDto: CancellationAppointmentDto,
+    @Request() req,
+  ) {
+    const { sub } = req.user;
+    return this.appointmentsService.cancelByClient(
+      +id,
+      cancellationAppointmentDto,
+      +sub,
+    );
+  }
+
   @Get()
   findAll() {
     return this.appointmentsService.findAll();
@@ -73,9 +89,4 @@ export class AppointmentsController {
   findOne(@Param('id') id: string) {
     return this.appointmentsService.findOne(+id);
   }
-
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateAppointmentDto: UpdateAppointmentDto) {
-  //   return this.appointmentsService.update(+id, updateAppointmentDto);
-  // }
 }

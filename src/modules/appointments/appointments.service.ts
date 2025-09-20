@@ -11,7 +11,6 @@ import {
 import { DoctorSlot } from 'src/modules/doctor_slots/entities/doctor_slot.entity';
 import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
-import moment from 'moment';
 import { Patient } from 'src/modules/patients/entities/patient.entity';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -20,6 +19,8 @@ import { toDTO } from 'src/common/utils/mapToDto';
 import { AppointmentResponseDto } from 'src/modules/appointments/dto/response-appointment.dto';
 import { CancellationAppointmentDto } from 'src/modules/appointments/dto/cancellation-appointment.dto';
 import { AppointmentCancellation } from 'src/modules/appointments/entities/appointment_cancellations.entity';
+
+import moment, { unitOfTime } from 'moment';
 
 @Injectable()
 export class AppointmentsService {
@@ -154,6 +155,9 @@ export class AppointmentsService {
       where: {
         appointment_id: id,
       },
+      relations: {
+        doctor_slot: true,
+      },
     });
     if (!appointmentFound)
       throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
@@ -187,6 +191,78 @@ export class AppointmentsService {
       // cập nhật trường status thành cancelled trong bảng appointments
       await manager.update(Appointment, id, {
         status: StatusAppointment.CANCELED,
+      });
+
+      // cập nhật trường status trong bảng doctor_slots thành available
+      await manager.update(DoctorSlot, appointmentFound.doctor_slot.slot_id, {
+        status: StatusDoctorSlot.AVAILABLE,
+      });
+    });
+  }
+
+  // hàm hủy lịch khám - dành cho khách hàng
+  async cancelByClient(
+    id: number,
+    cancellationAppointmentDto: CancellationAppointmentDto,
+    userId: number,
+  ) {
+    const { cancellation_party, note, reason_code } =
+      cancellationAppointmentDto;
+    // tìm theo id
+    const appointmentFound = await this.appointmentRepo.findOne({
+      where: {
+        appointment_id: id,
+      },
+      relations: ['doctor_slot'],
+    });
+
+    if (!appointmentFound)
+      throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
+
+    // nếu đã hủy thì báo lỗi
+    if (appointmentFound.status === StatusAppointment.CANCELED)
+      throw new BadRequestException(
+        ERROR_MESSAGE.APPOINTMENT_HAS_BEEN_CANCELLED,
+      );
+
+    if (
+      !this.isAtLeastBefore(
+        appointmentFound.doctor_slot.slot_date,
+        appointmentFound.doctor_slot.start_at,
+        1,
+      )
+    ) {
+      throw new BadRequestException(ERROR_MESSAGE.CANCEL_APPOINTMENT_TIME(1));
+    }
+    // tạo transaction
+    return await this.datasource.transaction(async (manager) => {
+      // tạo mới appointment_cancellation
+      const newAppointmentCancellation = manager.create(
+        AppointmentCancellation,
+        {
+          appointment_id: id,
+          cancellation_party,
+          reason_code,
+          note,
+          user_account: {
+            user_id: userId,
+          },
+          appointment: {
+            appointment_id: id,
+          },
+        },
+      );
+
+      await manager.save(newAppointmentCancellation);
+
+      // cập nhật trường status thành cancelled trong bảng appointments
+      await manager.update(Appointment, id, {
+        status: StatusAppointment.CANCELED,
+      });
+
+      // cập nhật trường status trong bảng doctor_slots thành available
+      await manager.update(DoctorSlot, appointmentFound.doctor_slot.slot_id, {
+        status: StatusDoctorSlot.AVAILABLE,
       });
     });
   }
@@ -260,10 +336,6 @@ export class AppointmentsService {
     return listAppointments;
   }
 
-  // update(id: number, updateAppointmentDto: UpdateAppointmentDto) {
-  //   return `This action updates a #${id} appointment`;
-  // }
-
   remove(id: number) {
     return `This action removes a #${id} appointment`;
   }
@@ -294,5 +366,29 @@ export class AppointmentsService {
   // hàm sinh mã bệnh nhân
   private generatePatientCode(): string {
     return `PAC-${uuidv4()}`;
+  }
+
+  /**
+   * Kiểm tra thời gian hiện tại có trước giờ khám ít nhất X phút/hours không
+   * @param {string} appointmentDate - Ngày khám (format: DD/MM/YYYY)
+   * @param {string} startTime - Giờ bắt đầu ca khám (format: HH:mm:ss)
+   * @param {number} amount - Khoảng thời gian cần kiểm tra
+   * @param {"minutes" | "hours"} unit - Đơn vị: "minutes" hoặc "hours"
+   * @returns {boolean}
+   */
+  private isAtLeastBefore(
+    appointmentDate: string,
+    startTime: string,
+    amount: number,
+    unit: unitOfTime.Diff = 'hours', // mặc định đơn vị so sánh là giờ
+  ): boolean {
+    const now = moment();
+    const appointmentDateTime = moment(
+      `${appointmentDate} ${startTime}`,
+      'DD/MM/YYYY HH:mm:ss',
+    );
+
+    const diff = appointmentDateTime.diff(now, unit);
+    return diff >= amount;
   }
 }
