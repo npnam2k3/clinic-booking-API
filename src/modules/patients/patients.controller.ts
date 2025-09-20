@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { PatientsService } from './patients.service';
 import { UpdatePatientDto } from './dto/update-patient.dto';
@@ -16,14 +17,29 @@ import { Action } from 'src/common/enums/action.enum';
 import { Subject } from 'src/common/enums/subject.enum';
 import { ResponseMessage } from 'src/common/decorators/response.decorator';
 import { RESPONSE_MESSAGE } from 'src/common/constants/response.message';
+import { PAGINATION } from 'src/common/constants/pagination';
 
 @Controller('patients')
 export class PatientsController {
   constructor(private readonly patientsService: PatientsService) {}
 
   @Get()
-  findAll() {
-    return this.patientsService.findAll();
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.patient })
+  findAll(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('keyword') keyword?: string,
+    @Query('orderBy') orderBy: 'ASC' | 'DESC' = 'DESC',
+  ) {
+    const pageNum = page ? page : PAGINATION.PATIENT.PAGE_NUMBER;
+    const limitNum = limit ? limit : PAGINATION.PATIENT.LIMIT_NUMBER;
+    return this.patientsService.findAll({
+      pageNum,
+      limitNum,
+      keyword,
+      orderBy,
+    });
   }
 
   @Get(':id')

@@ -13,8 +13,39 @@ export class PatientsService {
     private readonly patientRepo: Repository<Patient>,
   ) {}
 
-  findAll() {
-    return `This action returns all patients`;
+  async findAll({ pageNum, limitNum, keyword, orderBy }) {
+    const queryBuilder = this.patientRepo
+      .createQueryBuilder('patient')
+      .leftJoinAndSelect('patient.contact', 'contact');
+
+    //1. search
+    if (keyword) {
+      queryBuilder.andWhere('patient.fullname LIKE :keyword', {
+        keyword: `%${keyword}%`,
+      });
+    }
+
+    //2. sort
+    queryBuilder.orderBy(`patient.createdAt`, orderBy);
+
+    //3. pagination
+    const totalRecords = await queryBuilder.getCount();
+    const patients = await queryBuilder
+      .skip((pageNum - 1) * limitNum)
+      .take(limitNum)
+      .getMany();
+
+    return {
+      patients,
+      totalRecords,
+      totalPages: Math.ceil(totalRecords / limitNum),
+      conditions: {
+        pageNum,
+        limitNum,
+        keyword,
+        orderBy,
+      },
+    };
   }
 
   async findOne(patientCode: string) {
