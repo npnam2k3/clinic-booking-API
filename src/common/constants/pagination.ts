@@ -11,4 +11,8 @@ export const PAGINATION = {
     PAGE_NUMBER: 1,
     LIMIT_NUMBER: 5,
   },
+  PATIENT: {
+    PAGE_NUMBER: 1,
+    LIMIT_NUMBER: 5,
+  },
 };

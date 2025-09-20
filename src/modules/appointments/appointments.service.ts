@@ -99,20 +99,31 @@ export class AppointmentsService {
         await manager.save(Contact, contact);
       }
 
-      // tạo patient mới
-      const newPatient = manager.create(Patient, {
-        patient_code: this.generatePatientCode(),
-        fullname,
-        date_of_birth,
-        gender,
-        address,
-        contact,
+      // tạo patient mới nếu chưa tồn tại
+      let patient = await manager.findOne(Patient, {
+        where: {
+          fullname: fullname,
+          date_of_birth: date_of_birth,
+          contact: {
+            contact_id: contact.contact_id,
+          },
+        },
       });
-      await manager.save(Patient, newPatient);
+      if (!patient) {
+        patient = manager.create(Patient, {
+          patient_code: this.generatePatientCode(),
+          fullname,
+          date_of_birth,
+          gender,
+          address,
+          contact,
+        });
+        await manager.save(Patient, patient);
+      }
 
       // tạo appointment mới
       const newAppointment = manager.create(Appointment, {
-        patient: newPatient,
+        patient: patient,
         doctor_slot: {
           slot_id,
         },
@@ -339,6 +350,7 @@ export class AppointmentsService {
           },
         },
       },
+      withDeleted: true,
     });
     if (!appointmentFound)
       throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
@@ -385,6 +397,7 @@ export class AppointmentsService {
         patient: true,
         appointment_cancellation: true,
       },
+      withDeleted: true,
     });
     return listAppointments;
   }
