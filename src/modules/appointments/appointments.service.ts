@@ -350,6 +350,7 @@ export class AppointmentsService {
           },
         },
       },
+      withDeleted: true,
     });
     if (!appointmentFound)
       throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
@@ -396,6 +397,7 @@ export class AppointmentsService {
         patient: true,
         appointment_cancellation: true,
       },
+      withDeleted: true,
     });
     return listAppointments;
   }

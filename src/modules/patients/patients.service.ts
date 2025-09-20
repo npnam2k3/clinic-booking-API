@@ -4,8 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Patient } from 'src/modules/patients/entities/patient.entity';
 import { Repository } from 'typeorm';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
-import { toDTO } from 'src/common/utils/mapToDto';
-import { PatientResponseDto } from 'src/modules/patients/dto/response-patient.dto';
 import { toLocalTime } from 'src/common/utils/handleTime';
 
 @Injectable()
@@ -60,7 +58,15 @@ export class PatientsService {
     await this.patientRepo.update(patientCode, updatePatientDto);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} patient`;
+  async remove(patientCode: string) {
+    const patientFound = await this.patientRepo.count({
+      where: {
+        patient_code: patientCode,
+      },
+    });
+
+    if (patientFound < 1)
+      throw new NotFoundException(ERROR_MESSAGE.PATIENT_NOT_FOUND);
+    await this.patientRepo.softDelete({ patient_code: patientCode });
   }
 }

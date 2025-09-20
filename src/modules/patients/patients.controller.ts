@@ -42,7 +42,10 @@ export class PatientsController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.delete, subject: Subject.patient })
+  @ResponseMessage(RESPONSE_MESSAGE.DELETE)
   remove(@Param('id') id: string) {
-    return this.patientsService.remove(+id);
+    return this.patientsService.remove(id);
   }
 }
