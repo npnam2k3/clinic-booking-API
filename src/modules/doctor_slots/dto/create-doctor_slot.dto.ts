@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDate,
   IsNotEmpty,
   IsNumber,
@@ -36,6 +37,9 @@ export class CreateDoctorSlotDto {
     message: 'Ngày kết thúc không hợp lệ, định dạng phải DD/MM/YYYY',
   })
   to_date: string;
+
+  @IsBoolean()
+  is_new: boolean;
 
   // @IsArray({ message: 'Danh sách các ngày làm việc không hợp lệ' })
   // @ArrayMinSize(1, { message: 'Phải có ít nhất 1 ngày làm việc' })

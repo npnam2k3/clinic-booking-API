@@ -41,9 +41,4 @@ export class DoctorSlotsController {
   ) {
     return this.doctorSlotsService.update(+id, updateDoctorSlotDto);
   }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.doctorSlotsService.remove(+id);
-  }
 }

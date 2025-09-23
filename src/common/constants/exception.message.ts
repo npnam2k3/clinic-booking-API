@@ -86,4 +86,7 @@ export const ERROR_MESSAGE = {
 
   EXISTS_WORK_SCHEDULE_IN_THE_FUTURE:
     'Không thể thêm lịch mới vì đã tồn tại một lịch làm việc có hiệu lực trong tương lai. Vui lòng kiểm tra lại',
+
+  WORK_SCHEDULE_HAS_BEEN_CREATE_SLOT:
+    'Tồn tại ngày làm việc đã được chia ca khám',
 };
