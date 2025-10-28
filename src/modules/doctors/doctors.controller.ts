@@ -47,6 +47,7 @@ export class DoctorsController {
     @Query('page') page: number,
     @Query('limit') limit: number,
     @Query('keyword') keyword?: string,
+    @Query('specialtyId') specialtyId?: number,
     @Query('sortBy') sortBy: string = 'years_of_experience',
     @Query('orderBy') orderBy: 'ASC' | 'DESC' = 'DESC',
   ) {
@@ -56,6 +57,7 @@ export class DoctorsController {
       pageNum,
       limitNum,
       keyword,
+      specialtyId,
       sortBy,
       orderBy,
     });

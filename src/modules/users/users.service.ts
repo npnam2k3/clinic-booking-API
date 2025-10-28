@@ -250,7 +250,6 @@ export class UsersService {
       is_block: userFound.is_block,
       createdAt: userFound.createdAt,
       patients: userFound.contact.patients || [],
-      reviews: userFound.contact.reviews || [],
       role: userFound.role.role_name,
       appointment_cancellations: userFound.appointment_cancellations || [],
     };

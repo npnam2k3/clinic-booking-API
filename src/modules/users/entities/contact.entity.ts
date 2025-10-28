@@ -1,5 +1,4 @@
 import { Patient } from 'src/modules/patients/entities/patient.entity';
-import { Review } from 'src/modules/reviews/entities/review.entity';
 import { UserAccount } from 'src/modules/users/entities/user_account.entity';
 import {
   Column,
@@ -43,7 +42,4 @@ export class Contact {
 
   @OneToMany(() => Patient, (patient) => patient.contact)
   patients: Patient[];
-
-  @OneToMany(() => Review, (review) => review.contact)
-  reviews: Review[];
 }
