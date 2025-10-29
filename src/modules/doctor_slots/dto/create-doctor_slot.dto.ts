@@ -40,16 +40,4 @@ export class CreateDoctorSlotDto {
 
   @IsBoolean()
   is_new: boolean;
-
-  // @IsArray({ message: 'Danh sách các ngày làm việc không hợp lệ' })
-  // @ArrayMinSize(1, { message: 'Phải có ít nhất 1 ngày làm việc' })
-  // @ValidateNested({ each: true })
-  // @Type(() => SchedulesDoctorSlotDto)
-  // schedules: SchedulesDoctorSlotDto[];
-}
-
-class SchedulesDoctorSlotDto {
-  @IsString()
-  @IsNotEmpty()
-  schedule_id: string;
 }
