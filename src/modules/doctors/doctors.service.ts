@@ -13,6 +13,8 @@ import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
 import { CloudinaryService } from 'src/cloudinary/cloudinary.service';
 import { toDTO } from 'src/common/utils/mapToDto';
 import { DoctorResponseDto } from 'src/modules/doctors/dto/doctor-response.dto';
+import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
+import moment from 'moment';
 
 @Injectable()
 export class DoctorsService {
@@ -96,15 +98,20 @@ export class DoctorsService {
     }
   }
 
-  async findAll({ pageNum, limitNum, keyword, sortBy, orderBy }) {
+  async findAll({ pageNum, limitNum, keyword, specialtyId, sortBy, orderBy }) {
     const queryBuilder = this.doctorRepo
       .createQueryBuilder('doctor')
       .leftJoinAndSelect('doctor.specialty', 'specialty');
 
-    //1. search
+    //1. search and filter
     if (keyword) {
       queryBuilder.andWhere('doctor.fullname LIKE :keyword', {
         keyword: `%${keyword}%`,
+      });
+    }
+    if (specialtyId) {
+      queryBuilder.andWhere('specialty.specialization_id = :specialtyId', {
+        specialtyId,
       });
     }
 
@@ -128,25 +135,58 @@ export class DoctorsService {
         keyword,
         sortBy,
         orderBy,
+        specialtyId,
       },
     };
   }
 
-  async findOne(id: number): Promise<DoctorResponseDto> {
-    const doctorFound = await this.doctorRepo.findOne({
-      where: {
-        doctor_id: id,
-      },
-      relations: {
-        specialty: true,
-        reviews: true,
-        work_schedules: true,
-      },
-    });
+  async findOne(id: number) {
+    const today = new Date();
+
+    const doctorFound = await this.doctorRepo
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect('doctor.specialty', 'specialty')
+      .leftJoinAndSelect(
+        'doctor.work_schedules',
+        'work_schedules',
+        `work_schedules.effective_date <= :today AND work_schedules.expire_date >= :today`,
+      )
+      .leftJoinAndSelect(
+        'doctor.doctor_slots',
+        'slots',
+        `STR_TO_DATE(slots.slot_date, '%d/%m/%Y') >= DATE(:today)
+        AND slots.status = :status`,
+      )
+      .where('doctor.doctor_id = :id', { id })
+      .setParameter('today', today)
+      .setParameter('status', StatusDoctorSlot.AVAILABLE)
+      .getOne();
     if (!doctorFound)
       throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
 
-    return toDTO(DoctorResponseDto, doctorFound) as DoctorResponseDto;
+    // format data
+    const listWorkSchedules = doctorFound.work_schedules;
+
+    // convert chuỗi ngày tháng năm từ 'DD/MM/YYYY' => 'YYYY-MM-DD'
+    const listSlots = doctorFound.doctor_slots.map((slot) => ({
+      ...slot,
+      slot_date: moment(slot.slot_date, 'DD/MM/YYYY').format('YYYY-MM-DD'),
+    }));
+
+    // Gộp slot vào từng schedule
+    const mergedSchedules = listWorkSchedules.map((schedule) => ({
+      ...schedule,
+      slots: listSlots.filter(
+        (slot) => slot.source_id === schedule.schedule_id,
+      ),
+    }));
+    doctorFound.work_schedules = mergedSchedules;
+
+    return {
+      ...doctorFound,
+      doctor_slots: undefined,
+      work_schedules: mergedSchedules,
+    };
   }
 
   async update(

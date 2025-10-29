@@ -2,6 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsDate,
   IsNotEmpty,
   IsNumber,
@@ -37,15 +38,6 @@ export class CreateDoctorSlotDto {
   })
   to_date: string;
 
-  // @IsArray({ message: 'Danh sách các ngày làm việc không hợp lệ' })
-  // @ArrayMinSize(1, { message: 'Phải có ít nhất 1 ngày làm việc' })
-  // @ValidateNested({ each: true })
-  // @Type(() => SchedulesDoctorSlotDto)
-  // schedules: SchedulesDoctorSlotDto[];
-}
-
-class SchedulesDoctorSlotDto {
-  @IsString()
-  @IsNotEmpty()
-  schedule_id: string;
+  @IsBoolean()
+  is_new: boolean;
 }

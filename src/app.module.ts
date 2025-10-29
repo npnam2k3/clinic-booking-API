@@ -11,7 +11,6 @@ import { AuthModule } from 'src/modules/auth/auth.module';
 import { DoctorSlotsModule } from 'src/modules/doctor_slots/doctor_slots.module';
 import { DoctorsModule } from 'src/modules/doctors/doctors.module';
 import { PatientsModule } from 'src/modules/patients/patients.module';
-import { ReviewsModule } from 'src/modules/reviews/reviews.module';
 import { SpecialtiesModule } from 'src/modules/specialties/specialties.module';
 import { WorkSchedulesModule } from 'src/modules/work_schedules/work_schedules.module';
 import { PermissionsModule } from 'src/modules/permissions/permissions.module';
@@ -40,7 +39,6 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     DoctorSlotsModule,
     DoctorsModule,
     PatientsModule,
-    ReviewsModule,
     SpecialtiesModule,
     WorkSchedulesModule,
     CloudinaryModule,

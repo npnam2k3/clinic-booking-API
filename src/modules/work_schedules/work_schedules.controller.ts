@@ -30,22 +30,22 @@ export class WorkSchedulesController {
     return this.workSchedulesService.create(createWorkScheduleDto);
   }
 
-  @Patch(':doctor_id')
-  @UseGuards(JwtAuthGuard, AuthorizationGuard)
-  @Permissions({ action: Action.update, subject: Subject.work_schedule })
-  @ResponseMessage(RESPONSE_MESSAGE.UPDATE)
-  update(
-    @Param('doctor_id') doctorId: string,
-    @Body() updateWorkScheduleDto: UpdateWorkScheduleDto,
-  ) {
-    return this.workSchedulesService.update(+doctorId, updateWorkScheduleDto);
-  }
+  // @Patch(':doctor_id')
+  // @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  // @Permissions({ action: Action.update, subject: Subject.work_schedule })
+  // @ResponseMessage(RESPONSE_MESSAGE.UPDATE)
+  // update(
+  //   @Param('doctor_id') doctorId: string,
+  //   @Body() updateWorkScheduleDto: UpdateWorkScheduleDto,
+  // ) {
+  //   return this.workSchedulesService.update(+doctorId, updateWorkScheduleDto);
+  // }
 
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard, AuthorizationGuard)
-  @Permissions({ action: Action.delete, subject: Subject.work_schedule })
-  @ResponseMessage(RESPONSE_MESSAGE.DELETE)
-  remove(@Param('id') id: string) {
-    return this.workSchedulesService.remove(+id);
-  }
+  // @Delete(':id')
+  // @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  // @Permissions({ action: Action.delete, subject: Subject.work_schedule })
+  // @ResponseMessage(RESPONSE_MESSAGE.DELETE)
+  // remove(@Param('id') id: string) {
+  //   return this.workSchedulesService.remove(+id);
+  // }
 }

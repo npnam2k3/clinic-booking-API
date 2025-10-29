@@ -1,6 +1,5 @@
 import { DoctorSlot } from 'src/modules/doctor_slots/entities/doctor_slot.entity';
 import { Gender } from 'src/modules/patients/enum';
-import { Review } from 'src/modules/reviews/entities/review.entity';
 import { Specialty } from 'src/modules/specialties/entities/specialty.entity';
 import { WorkSchedule } from 'src/modules/work_schedules/entities/work_schedule.entity';
 import {
@@ -69,7 +68,4 @@ export class Doctor {
 
   @OneToMany(() => DoctorSlot, (doctor_slot) => doctor_slot.doctor)
   doctor_slots: DoctorSlot[];
-
-  @OneToMany(() => Review, (review) => review.doctor)
-  reviews: Review[];
 }

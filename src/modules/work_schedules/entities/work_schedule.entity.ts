@@ -31,18 +31,11 @@ export class WorkSchedule {
   @Column({ type: 'text' })
   note: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  effective_date: string;
+  @Column({ type: 'date', nullable: true })
+  effective_date: Date | null;
 
-  @Column({ type: 'varchar', nullable: true })
-  expire_date: string;
-
-  @Column({
-    type: 'enum',
-    enum: StatusWorkSchedule,
-    default: StatusWorkSchedule.active,
-  })
-  status: StatusWorkSchedule;
+  @Column({ type: 'date', nullable: true })
+  expire_date: Date | null;
 
   @CreateDateColumn()
   createdAt: Date;
