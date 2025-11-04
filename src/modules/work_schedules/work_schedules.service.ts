@@ -30,102 +30,99 @@ export class WorkSchedulesService {
 
     private readonly dataSource: DataSource,
   ) {}
+
   async create(createWorkScheduleDto: CreateWorkScheduleDto) {
-    const { doctor_id, schedules, slot_duration, effective_date } =
+    const { doctor_id, schedules, slot_duration, effective_date, expire_date } =
       createWorkScheduleDto;
 
-    // kiểm tra ngày có hiệu lực của lịch mới phải sau ngày hiện tại
-    const today = moment().startOf('day'); // chỉ lấy ngày, bỏ giờ phút giây
-    const effectiveDate = moment(effective_date, 'DD/MM/YYYY');
+    // ---- 1 Chuẩn hoá ngày (so sánh theo ngày, bỏ giờ phút giây) ----
+    const today = moment().startOf('day');
+    const effectiveDate = moment(effective_date, 'DD/MM/YYYY').startOf('day');
+    const expireDate = moment(expire_date, 'DD/MM/YYYY').startOf('day');
 
+    // ---- 2 Kiểm tra ngày hợp lệ ----
     if (!effectiveDate.isAfter(today)) {
       throw new BadRequestException(
         'Ngày có hiệu lực phải lớn hơn ngày hiện tại',
       );
     }
 
-    // kiểm tra end_time phải sau start_time
-    // chỉ cho phép khoảng thời gian trong vòng 1 ngày, không được tính ngày hôm sau
-    // nghĩa là từ 00:00 - 23:59
+    if (!expireDate.isAfter(effectiveDate)) {
+      throw new BadRequestException(
+        'Ngày hết hạn phải lớn hơn ngày có hiệu lực',
+      );
+    }
+
+    const diffDays = expireDate.diff(effectiveDate, 'days');
+    if (diffDays < 7) {
+      throw new BadRequestException(
+        'Lịch làm việc phải có thời hạn tối thiểu 7 ngày',
+      );
+    }
+
+    // ---- 3 Kiểm tra thời gian trong schedule ----
     this.validateWorkScheduleTimes(schedules);
 
-    // kiểm tra bác sĩ tồn tại theo id
+    // ---- 4 Kiểm tra bác sĩ tồn tại ----
     const doctorFound = await this.doctorRepo.findOne({
-      where: {
-        doctor_id,
-      },
+      where: { doctor_id },
     });
+
     if (!doctorFound)
       throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
 
-    return await this.dataSource.transaction(async (manager) => {
-      // kiểm tra có lịch trong tương lai chưa có hiệu lực
-      // Vì chỉ cho phép 1 lịch mới thêm trước. Điều kiện: ngày hiện tại < effective_date và expire_date = null
-      const checkExistsWorkScheduleForFuture = await manager.count(
-        WorkSchedule,
-        {
-          where: {
-            doctor: { doctor_id },
-            effective_date: MoreThan(new Date()),
-            expire_date: IsNull(),
-          },
-        },
-      );
+    // ---- 5 Tìm lịch hiện tại đang sử dụng ----
+    const currentWorkSchedule = await this.dataSource
+      .getRepository(WorkSchedule)
+      .createQueryBuilder('ws')
+      .where('ws.doctor_id = :doctor_id', { doctor_id })
+      .andWhere('DATE(ws.effective_date) <= CURDATE()')
+      .andWhere('CURDATE() <= DATE(ws.expire_date)')
+      .getOne();
 
-      if (checkExistsWorkScheduleForFuture > 0) {
+    // ---- 6 Kiểm tra trùng lịch với lịch hiện tại ----
+    if (currentWorkSchedule) {
+      const currentExpire = moment(currentWorkSchedule.expire_date).startOf(
+        'day',
+      );
+      if (!effectiveDate.isAfter(currentExpire)) {
         throw new ConflictException(
-          ERROR_MESSAGE.EXISTS_WORK_SCHEDULE_IN_THE_FUTURE,
+          'Lịch mới phải bắt đầu sau khi lịch hiện tại hết hạn',
         );
       }
+    }
 
-      // chuẩn bị ngày có hiệu lực và hết hạn
-      const effectiveDate = moment(effective_date, 'DD/MM/YYYY').toDate();
-      const expireDate = moment(effective_date, 'DD/MM/YYYY')
-        .subtract(1, 'day')
-        .toDate();
+    // ---- 7 Kiểm tra đã có lịch mới trong tương lai chưa ----
+    const hasFutureSchedule = await this.dataSource
+      .getRepository(WorkSchedule)
+      .createQueryBuilder('ws')
+      .where('ws.doctor_id = :doctor_id', { doctor_id })
+      .andWhere('DATE(ws.effective_date) > CURDATE()')
+      .getExists();
 
-      // cập nhật expire_date của các lịch cũ
-      await manager
-        .createQueryBuilder()
-        .update(WorkSchedule)
-        .set({ expire_date: expireDate })
-        .where('doctor_id = :doctor_id', { doctor_id })
-        .andWhere('effective_date <= NOW()')
-        .andWhere('expire_date IS NULL')
-        .execute();
-
-      // tạo mới lịch
-      const newWorkSchedules = schedules.map((day) =>
-        manager.create(WorkSchedule, {
-          day_of_week: day.day_of_week,
-          slot_duration,
-          start_time: day.start_time,
-          end_time: day.end_time,
-          effective_date: effectiveDate,
-          expire_date: null,
-          note: day.note,
-          doctor: { doctor_id: doctorFound.doctor_id },
-        }),
+    if (hasFutureSchedule) {
+      throw new ConflictException(
+        ERROR_MESSAGE.EXISTS_WORK_SCHEDULE_IN_THE_FUTURE,
       );
+    }
 
-      await manager.save(WorkSchedule, newWorkSchedules);
+    // ---- 8 Lưu lịch mới ----
+    const newSchedules = schedules.map((day) =>
+      this.dataSource.getRepository(WorkSchedule).create({
+        doctor: { doctor_id },
+        day_of_week: day.day_of_week,
+        slot_duration,
+        start_time: day.start_time,
+        end_time: day.end_time,
+        effective_date: effectiveDate.toDate(),
+        expire_date: expireDate.toDate(),
+        note: day.note,
+      }),
+    );
 
-      // chuyển các slot sau ngày làm việc mới có hiệu lực mà trạng thái đang là available => unavailable
-      await manager
-        .createQueryBuilder()
-        .update(DoctorSlot)
-        .set({ status: StatusDoctorSlot.UNAVAILABLE })
-        .where('doctor_id = :doctor_id', { doctor_id })
+    await this.dataSource.getRepository(WorkSchedule).save(newSchedules);
 
-        // STR_TO_DATE: dùng để chuyển slot_date từ dạng DD/MM/YYYY sang YYYY/MM/DD để so sánh
-        .andWhere('STR_TO_DATE(slot_date, "%d/%m/%Y") > :expireDate', {
-          expireDate,
-        })
-        .andWhere('status = :status', { status: StatusDoctorSlot.AVAILABLE })
-        .execute();
-
-      return newWorkSchedules;
-    });
+    return newSchedules;
   }
 
   // lấy lịch làm việc cũ của từng bác sĩ => hiển thị theo danh sách bác sĩ

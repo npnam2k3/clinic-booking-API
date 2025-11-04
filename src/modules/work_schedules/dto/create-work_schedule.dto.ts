@@ -36,6 +36,12 @@ export class CreateWorkScheduleDto {
       'Ngày áp dụng lịch làm việc không hợp lệ, định dạng phải DD/MM/YYYY',
   })
   effective_date: string;
+
+  @Validate(IsValidDateConstraint, {
+    message:
+      'Ngày hết hạn lịch làm việc không hợp lệ, định dạng phải DD/MM/YYYY',
+  })
+  expire_date: string;
 }
 
 export class DayWorkDto {

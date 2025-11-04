@@ -12,6 +12,7 @@ import {
   In,
   IsNull,
   LessThanOrEqual,
+  MoreThan,
   MoreThanOrEqual,
   Not,
   Repository,
@@ -34,30 +35,24 @@ export class DoctorSlotsService {
   private readonly NOON_BREAK_START = 12 * 60; // 12:00
   private readonly NOON_BREAK_END = 13 * 60 + 30; // 13:30
 
+  // chia lịch làm việc cho lịch mới
   async create(createDoctorSlotDto: CreateDoctorSlotDto) {
-    const { doctor_id, from_date, to_date, is_new } = createDoctorSlotDto;
+    const { doctor_id, from_date, to_date } = createDoctorSlotDto;
     const fromDate = moment(from_date, 'DD/MM/YYYY');
     const toDate = moment(to_date, 'DD/MM/YYYY');
 
     // lấy thông tin lịch làm việc của bác sĩ theo id bác sĩ
     let workSchedulesByDoctor: WorkSchedule[] = [];
-    if (!is_new) {
-      // lấy các lịch làm việc cũ với điều kiện: ngày hiện tại lớn hơn hoặc bằng ngày có hiệu lực cũ và ngày gia hạn làm việc cũ phải lớn hơn hoặc bằng toDate
-      workSchedulesByDoctor = await this.workScheduleRepo.find({
-        where: {
-          effective_date: LessThanOrEqual(new Date()),
-          expire_date: MoreThanOrEqual(toDate.toDate()),
+
+    // Lấy các lịch làm việc mới với điều kiện: ngày có hiệu lực mới > ngày hiện tại
+    workSchedulesByDoctor = await this.workScheduleRepo.find({
+      where: {
+        effective_date: MoreThan(new Date()),
+        doctor: {
+          doctor_id,
         },
-      });
-    } else {
-      // Lấy các lịch làm việc mới với điều kiện: ngày có hiệu lực mới >= ngày hiện tại và ngày gia hạn bằng null
-      workSchedulesByDoctor = await this.workScheduleRepo.find({
-        where: {
-          effective_date: MoreThanOrEqual(new Date()),
-          expire_date: IsNull(),
-        },
-      });
-    }
+      },
+    });
 
     if (workSchedulesByDoctor.length < 1)
       throw new BadRequestException(

@@ -38,6 +38,6 @@ export class CreateDoctorSlotDto {
   })
   to_date: string;
 
-  @IsBoolean()
-  is_new: boolean;
+  // @IsBoolean()
+  // is_new: boolean;
 }
