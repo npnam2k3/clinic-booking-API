@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Get,
 } from '@nestjs/common';
 import { WorkSchedulesService } from './work_schedules.service';
 import { CreateWorkScheduleDto } from './dto/create-work_schedule.dto';
@@ -28,6 +29,22 @@ export class WorkSchedulesController {
   @ResponseMessage(RESPONSE_MESSAGE.CREATE)
   create(@Body() createWorkScheduleDto: CreateWorkScheduleDto) {
     return this.workSchedulesService.create(createWorkScheduleDto);
+  }
+
+  @Get('old-work-schedule')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.work_schedule })
+  @ResponseMessage(RESPONSE_MESSAGE.GET)
+  getOldWorkSchedule() {
+    return this.workSchedulesService.getOldWorkSchedule();
+  }
+
+  @Get('new-work-schedule')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.read, subject: Subject.work_schedule })
+  @ResponseMessage(RESPONSE_MESSAGE.GET)
+  getNewWorkSchedule() {
+    return this.workSchedulesService.getNewWorkSchedule();
   }
 
   // @Patch(':doctor_id')
