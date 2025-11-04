@@ -12,7 +12,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { WorkSchedule } from 'src/modules/work_schedules/entities/work_schedule.entity';
 import { DataSource, IsNull, MoreThan, Repository } from 'typeorm';
 import { ERROR_MESSAGE } from 'src/common/constants/exception.message';
-import { DayOfWeek } from 'src/modules/work_schedules/enum';
+import { DayOfWeek, StatusWorkSchedule } from 'src/modules/work_schedules/enum';
 import { Doctor } from 'src/modules/doctors/entities/doctor.entity';
 import { checkTimeValid } from 'src/common/utils/handleTime';
 import moment from 'moment';
@@ -33,6 +33,17 @@ export class WorkSchedulesService {
   async create(createWorkScheduleDto: CreateWorkScheduleDto) {
     const { doctor_id, schedules, slot_duration, effective_date } =
       createWorkScheduleDto;
+
+    // kiểm tra ngày có hiệu lực của lịch mới phải sau ngày hiện tại
+    const today = moment().startOf('day'); // chỉ lấy ngày, bỏ giờ phút giây
+    const effectiveDate = moment(effective_date, 'DD/MM/YYYY');
+
+    if (!effectiveDate.isAfter(today)) {
+      throw new BadRequestException(
+        'Ngày có hiệu lực phải lớn hơn ngày hiện tại',
+      );
+    }
+
     // kiểm tra end_time phải sau start_time
     // chỉ cho phép khoảng thời gian trong vòng 1 ngày, không được tính ngày hôm sau
     // nghĩa là từ 00:00 - 23:59
@@ -117,50 +128,59 @@ export class WorkSchedulesService {
     });
   }
 
-  // async update(doctorId: number, updateWorkScheduleDto: UpdateWorkScheduleDto) {
-  //   const { schedules } = updateWorkScheduleDto;
-  //   this.validateWorkScheduleTimes(schedules || []);
+  // lấy lịch làm việc cũ của từng bác sĩ => hiển thị theo danh sách bác sĩ
+  async getOldWorkSchedule() {
+    // câu lệnh truy vấn vào DB
+    const listDoctors = await this.dataSource
+      .getRepository(Doctor)
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect(
+        'doctor.work_schedules',
+        'work_schedule',
+        `
+          DATE(work_schedule.effective_date) <= CURDATE()
+          AND DATE(work_schedule.expire_date) >= CURDATE()
+        `,
+      )
+      .orderBy('doctor.doctor_id', 'ASC')
+      .getMany();
 
-  //   const doctorFound = await this.doctorRepo.findOne({
-  //     where: {
-  //       doctor_id: doctorId,
-  //     },
-  //     relations: {
-  //       work_schedules: true,
-  //     },
-  //   });
-  //   // console.log('check doctorFound::', doctorFound);
-  //   if (!doctorFound)
-  //     throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
+    // format kết quả trả về có gắn thêm status vào mỗi schedule
+    const result = listDoctors.map((doctor) => ({
+      ...doctor,
+      work_schedules: doctor.work_schedules.map((w) => ({
+        ...w,
+        status: StatusWorkSchedule.active,
+      })),
+    }));
+    return result;
+  }
 
-  //   await this.validateScheduleConflictForUpdate(doctorFound, schedules || []);
+  // lấy lịch làm việc mới của từng bác sĩ => hiển thị theo danh sách bác sĩ
+  async getNewWorkSchedule() {
+    // truy vấn vào DB
+    const listDoctors = await this.dataSource
+      .getRepository(Doctor)
+      .createQueryBuilder('doctor')
+      .leftJoinAndSelect(
+        'doctor.work_schedules',
+        'work_schedule',
+        'DATE(work_schedule.effective_date) > CURDATE()',
+      )
+      .orderBy('doctor.doctor_id', 'ASC')
+      .getMany();
 
-  //   const updatedSchedule = schedules?.map((dto) =>
-  //     this.workScheduleRepo.create({
-  //       schedule_id: dto.schedule_id,
-  //       day_of_week: dto.day_of_week,
-  //       start_time: dto.start_time,
-  //       end_time: dto.end_time,
-  //       note: dto.note,
-  //       slot_duration: dto.slot_duration,
-  //     }),
-  //   ) as WorkSchedule[];
-  //   await this.workScheduleRepo.save(updatedSchedule);
-  // }
+    // format kết quả trả về có gắn thêm status vào mỗi schedule
+    const result = listDoctors.map((doctor) => ({
+      ...doctor,
+      work_schedules: doctor.work_schedules.map((w) => ({
+        ...w,
+        status: StatusWorkSchedule.coming_up,
+      })),
+    }));
 
-  // async remove(id: number) {
-  //   const workScheduleFound = await this.workScheduleRepo.count({
-  //     where: {
-  //       schedule_id: id,
-  //     },
-  //   });
-  //   if (workScheduleFound < 1) {
-  //     throw new NotFoundException(
-  //       ERROR_MESSAGE.WORK_SCHEDULE_NOT_FOUND(id.toString()),
-  //     );
-  //   }
-  //   await this.workScheduleRepo.softDelete(id);
-  // }
+    return result;
+  }
 
   // hàm kiểm tra thời gian của các ngày xem có hợp lệ hay không và kiểm tra xem có ngày làm việc nào bị trùng không
   private validateWorkScheduleTimes(schedules: DayWorkDto[]): void {
@@ -205,90 +225,4 @@ export class WorkSchedulesService {
         message: ERROR_MESSAGE.INVALID_INPUT,
       });
   }
-
-  // hàm kiểm tra ngày làm việc đã tồn tại trong database hay chưa
-  // private async validateScheduleConflict(
-  //   doctor: Doctor,
-  //   schedules: DayWorkDto[],
-  // ) {
-  //   // lấy tất cả ngày làm việc của bác sĩ đã có trong DB
-  //   const existingSchedules = await this.workScheduleRepo.find({
-  //     where: { doctor: { doctor_id: doctor.doctor_id } },
-  //     select: ['day_of_week'],
-  //   });
-
-  //   const existingDays = new Set(existingSchedules.map((s) => s.day_of_week));
-
-  //   const duplicatedWithDb: string[] = [];
-  //   for (const { day_of_week } of schedules) {
-  //     if (existingDays.has(day_of_week)) {
-  //       duplicatedWithDb.push(day_of_week);
-  //     }
-  //   }
-
-  //   if (duplicatedWithDb.length > 0) {
-  //     const daysString = duplicatedWithDb.map((d) => DayOfWeek[d]).join(', ');
-  //     throw new BadRequestException(
-  //       ERROR_MESSAGE.WORK_SCHEDULE_EXISTS_IN_DB(daysString, doctor.fullname),
-  //     );
-  //   }
-  // }
-
-  // private async validateScheduleConflictForUpdate(
-  //   doctor: Doctor,
-  //   schedules: UpdateDayWorkDto[],
-  // ) {
-  //   // lấy tất cả ngày làm việc của bác sĩ đã có trong DB
-  //   const existingSchedules = await this.workScheduleRepo.find({
-  //     where: { doctor: { doctor_id: doctor.doctor_id } },
-  //     select: ['schedule_id', 'day_of_week'],
-  //   });
-
-  //   const dbScheduleIds = existingSchedules.map((s) => s.schedule_id);
-
-  //   // --- Bước 1: kiểm tra ID tồn tại ---
-  //   const invalidIds: number[] = [];
-  //   for (const { schedule_id } of schedules) {
-  //     if (!dbScheduleIds.includes(schedule_id)) {
-  //       invalidIds.push(schedule_id);
-  //     }
-  //   }
-
-  //   if (invalidIds.length > 0) {
-  //     const errors = invalidIds.map((id) =>
-  //       ERROR_MESSAGE.WORK_SCHEDULE_NOT_FOUND(id.toString()),
-  //     );
-  //     throw new BadRequestException({
-  //       errors,
-  //       message: ERROR_MESSAGE.INVALID_INPUT,
-  //     });
-  //   }
-
-  //   // --- Bước 2: kiểm tra ngày trùng ---
-  //   const errors: string[] = [];
-  //   for (const { schedule_id, day_of_week } of schedules) {
-  //     const schedulesWithoutCurrentId = existingSchedules.filter(
-  //       (s) => s.schedule_id !== schedule_id,
-  //     );
-  //     const dayOfWeekWithoutCurrent = schedulesWithoutCurrentId.map(
-  //       (s) => s.day_of_week,
-  //     );
-
-  //     if (dayOfWeekWithoutCurrent.includes(day_of_week)) {
-  //       errors.push(
-  //         ERROR_MESSAGE.WORK_SCHEDULE_EXISTS_IN_DB(
-  //           DayOfWeek[day_of_week],
-  //           doctor.fullname,
-  //         ),
-  //       );
-  //     }
-  //   }
-
-  //   if (errors.length > 0) {
-  //     throw new BadRequestException({
-  //       errors,
-  //       message: ERROR_MESSAGE.INVALID_INPUT,
-  //     });
-  //   }
-  // }
 }

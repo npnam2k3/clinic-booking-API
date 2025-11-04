@@ -41,12 +41,13 @@ export class SpecialtiesService {
     ) as SpecialtyResponseDto;
   }
 
-  async findAll(): Promise<SpecialtyResponseDto[]> {
-    const listSpecialties = await this.specialtyRepo.find();
-    return toDTO(
-      SpecialtyResponseDto,
-      listSpecialties,
-    ) as SpecialtyResponseDto[];
+  async findAll() {
+    const listSpecialties = await this.specialtyRepo.find({
+      relations: {
+        doctors: true,
+      },
+    });
+    return listSpecialties;
   }
 
   async findOne(id: number) {

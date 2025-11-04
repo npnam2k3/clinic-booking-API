@@ -1,5 +1,4 @@
 import { Doctor } from 'src/modules/doctors/entities/doctor.entity';
-import { StatusWorkSchedule } from 'src/modules/work_schedules/enum';
 import {
   Column,
   CreateDateColumn,

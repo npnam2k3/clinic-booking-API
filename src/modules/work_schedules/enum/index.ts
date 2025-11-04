@@ -9,6 +9,6 @@ export enum DayOfWeek {
 }
 
 export enum StatusWorkSchedule {
-  active = 'active',
-  inactive = 'inactive',
+  active = 'Đang hoạt động',
+  coming_up = 'Sắp tới',
 }
