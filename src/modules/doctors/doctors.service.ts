@@ -15,6 +15,8 @@ import { toDTO } from 'src/common/utils/mapToDto';
 import { DoctorResponseDto } from 'src/modules/doctors/dto/doctor-response.dto';
 import { StatusDoctorSlot } from 'src/modules/doctor_slots/enum';
 import moment from 'moment';
+import { DoctorSlot } from 'src/modules/doctor_slots/entities/doctor_slot.entity';
+import { WorkSchedule } from 'src/modules/work_schedules/entities/work_schedule.entity';
 
 @Injectable()
 export class DoctorsService {
@@ -140,46 +142,131 @@ export class DoctorsService {
     };
   }
 
+  // async findOne(id: number) {
+  //   const today = new Date();
+
+  //   const doctorFound = await this.doctorRepo
+  //     .createQueryBuilder('doctor')
+  //     .leftJoinAndSelect('doctor.specialty', 'specialty')
+  //     .leftJoinAndSelect(
+  //       'doctor.work_schedules',
+  //       'work_schedules',
+  //       // `work_schedules.effective_date <= :today AND work_schedules.expire_date >= :today`,
+  //       `
+  //       (
+  //         (work_schedules.effective_date <= :today AND work_schedules.expire_date >= :today)
+  //         OR
+  //         (work_schedules.effective_date > :today)
+  //       )
+  //     `,
+  //     )
+  //     .leftJoinAndSelect(
+  //       'doctor.doctor_slots',
+  //       'slots',
+  //       `STR_TO_DATE(slots.slot_date, '%d/%m/%Y') >= DATE(:today)
+  //       AND slots.status = :status`,
+  //     )
+  //     .where('doctor.doctor_id = :id', { id })
+  //     .setParameter('today', today)
+  //     .setParameter('status', StatusDoctorSlot.AVAILABLE)
+  //     .getOne();
+  //   if (!doctorFound)
+  //     throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
+
+  //   // format data
+  //   const listWorkSchedules = doctorFound.work_schedules;
+
+  //   // convert chuỗi ngày tháng năm từ 'DD/MM/YYYY' => 'YYYY-MM-DD'
+  //   const listSlots = doctorFound.doctor_slots.map((slot) => ({
+  //     ...slot,
+  //     slot_date: moment(slot.slot_date, 'DD/MM/YYYY').format('YYYY-MM-DD'),
+  //   }));
+
+  //   // Gộp slot vào từng schedule
+  //   const mergedSchedules = listWorkSchedules.map((schedule) => ({
+  //     ...schedule,
+  //     slots: listSlots.filter(
+  //       (slot) => slot.source_id === schedule.schedule_id,
+  //     ),
+  //   }));
+  //   doctorFound.work_schedules = mergedSchedules;
+
+  //   return {
+  //     ...doctorFound,
+  //     doctor_slots: undefined,
+  //     work_schedules: mergedSchedules,
+  //   };
+  // }
+
   async findOne(id: number) {
     const today = new Date();
 
-    const doctorFound = await this.doctorRepo
+    // 1 Lấy lịch hiện tại
+    let doctorFound = await this.doctorRepo
       .createQueryBuilder('doctor')
       .leftJoinAndSelect('doctor.specialty', 'specialty')
       .leftJoinAndSelect(
         'doctor.work_schedules',
         'work_schedules',
-        `work_schedules.effective_date <= :today AND work_schedules.expire_date >= :today`,
+        `DATE(work_schedules.effective_date) <= DATE(:today)
+       AND DATE(work_schedules.expire_date) >= DATE(:today)`,
       )
       .leftJoinAndSelect(
         'doctor.doctor_slots',
         'slots',
         `STR_TO_DATE(slots.slot_date, '%d/%m/%Y') >= DATE(:today)
-        AND slots.status = :status`,
+       AND slots.status = :status`,
       )
       .where('doctor.doctor_id = :id', { id })
-      .setParameter('today', today)
-      .setParameter('status', StatusDoctorSlot.AVAILABLE)
+      .setParameters({ today, status: StatusDoctorSlot.AVAILABLE })
       .getOne();
+
+    // 2 Nếu chưa có lịch hiện tại → lấy lịch tương lai gần nhất
+    if (!doctorFound?.work_schedules?.length) {
+      const nextSchedule = await this.doctorRepo
+        .createQueryBuilder('doctor')
+        .leftJoinAndSelect('doctor.specialty', 'specialty')
+        .leftJoinAndSelect(
+          'doctor.work_schedules',
+          'work_schedules',
+          `DATE(work_schedules.effective_date) = (
+          SELECT MIN(DATE(effective_date))
+          FROM work_schedules
+          WHERE doctor_id = :id
+          AND DATE(effective_date) > DATE(:today)
+        )`,
+        )
+        .leftJoinAndSelect(
+          'doctor.doctor_slots',
+          'slots',
+          `STR_TO_DATE(slots.slot_date, '%d/%m/%Y') >= DATE(:today)
+         AND slots.status = :status`,
+        )
+        .where('doctor.doctor_id = :id', { id })
+        .setParameters({ today, status: StatusDoctorSlot.AVAILABLE })
+        .getOne();
+
+      doctorFound = nextSchedule;
+    }
+
     if (!doctorFound)
       throw new NotFoundException(ERROR_MESSAGE.DOCTOR_NOT_FOUND);
 
-    // format data
-    const listWorkSchedules = doctorFound.work_schedules;
+    // 3 Format dữ liệu
+    const listWorkSchedules = doctorFound.work_schedules || [];
 
-    // convert chuỗi ngày tháng năm từ 'DD/MM/YYYY' => 'YYYY-MM-DD'
     const listSlots = doctorFound.doctor_slots.map((slot) => ({
       ...slot,
       slot_date: moment(slot.slot_date, 'DD/MM/YYYY').format('YYYY-MM-DD'),
     }));
 
-    // Gộp slot vào từng schedule
     const mergedSchedules = listWorkSchedules.map((schedule) => ({
       ...schedule,
       slots: listSlots.filter(
         (slot) => slot.source_id === schedule.schedule_id,
       ),
     }));
+
     doctorFound.work_schedules = mergedSchedules;
 
     return {

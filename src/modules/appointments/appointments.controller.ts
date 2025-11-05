@@ -39,6 +39,14 @@ export class AppointmentsController {
     return this.appointmentsService.confirm(+id);
   }
 
+  @Patch('completed/:id')
+  @UseGuards(JwtAuthGuard, AuthorizationGuard)
+  @Permissions({ action: Action.confirm, subject: Subject.appointment })
+  @ResponseMessage(RESPONSE_MESSAGE.CONFIRM_APPOINTMENT)
+  completed(@Param('id') id: string) {
+    return this.appointmentsService.completed(+id);
+  }
+
   @Patch('admin/cancel/:id')
   @UseGuards(JwtAuthGuard, AuthorizationGuard)
   @Permissions({ action: Action.cancel, subject: Subject.appointment })
