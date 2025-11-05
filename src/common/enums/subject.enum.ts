@@ -7,4 +7,5 @@ export enum Subject {
   doctor_slot = 'doctor_slot',
   appointment = 'appointment',
   patient = 'patient',
+  dashboard = 'dashboard',
 }

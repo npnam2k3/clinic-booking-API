@@ -18,6 +18,7 @@ import { RolesModule } from 'src/modules/roles/roles.module';
 import { JwtModule } from '@nestjs/jwt';
 import { MailModule } from 'src/common/mail/mail.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
+import { DashboardModule } from 'src/modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { CloudinaryModule } from './cloudinary/cloudinary.module';
     SpecialtiesModule,
     WorkSchedulesModule,
     CloudinaryModule,
+    DashboardModule,
   ],
   controllers: [],
   providers: [
