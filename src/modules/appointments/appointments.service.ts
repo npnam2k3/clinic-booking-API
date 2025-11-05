@@ -154,6 +154,20 @@ export class AppointmentsService {
     await this.appointmentRepo.save(appointmentFound);
   }
 
+  // hàm hoàn thành lịch khám
+  async completed(id: number) {
+    // tìm appointment theo id
+    const appointmentFound = await this.appointmentRepo.findOne({
+      where: {
+        appointment_id: id,
+      },
+    });
+    if (!appointmentFound)
+      throw new NotFoundException(ERROR_MESSAGE.APPOINTMENT_NOT_FOUND);
+    appointmentFound.status = StatusAppointment.COMPLETED;
+    await this.appointmentRepo.save(appointmentFound);
+  }
+
   // hàm hủy lịch khám - dành cho phía quản trị
   async cancelByAdmin(
     id: number,
