@@ -23,4 +23,21 @@ export class MailService {
       },
     });
   }
+
+  // 🌟 Gửi email đặt lịch khám
+  async sendAppointmentEmail(appointment, email) {
+    await this.mailerService.sendMail({
+      to: email,
+      subject: 'Xác nhận đặt lịch khám',
+      template: './appointmentConfirmation',
+      context: {
+        fullname: appointment.patient.fullname,
+        doctor_name: appointment.doctor_slot.doctor.fullname,
+        date: appointment.doctor_slot.slot_date,
+        start_at: appointment.doctor_slot.start_at,
+        end_at: appointment.doctor_slot.end_at,
+        note: appointment.note || 'Không có ghi chú',
+      },
+    });
+  }
 }
