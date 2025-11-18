@@ -59,7 +59,11 @@ export class DashboardService {
         end: endOfWeek,
       })
       .andWhere('a.status IN (:...statuses)', {
-        statuses: [StatusAppointment.PENDING, StatusAppointment.CONFIRMED],
+        statuses: [
+          StatusAppointment.PENDING,
+          StatusAppointment.CONFIRMED,
+          StatusAppointment.COMPLETED,
+        ],
       })
       .groupBy('DATE(a.createdAt)')
       .orderBy('DATE(a.createdAt)', 'ASC')
@@ -105,7 +109,7 @@ export class DashboardService {
       .leftJoinAndSelect('a.patient', 'patient')
       .leftJoinAndSelect('slot.doctor', 'doctor')
       .where(
-        `STR_TO_DATE(slot.slot_date, "%d/%m/%Y") BETWEEN 
+        `STR_TO_DATE(slot.slot_date, "%d/%m/%Y") BETWEEN
        STR_TO_DATE(:today, "%d/%m/%Y") AND STR_TO_DATE(:next2Days, "%d/%m/%Y")`,
         { today, next2Days },
       )

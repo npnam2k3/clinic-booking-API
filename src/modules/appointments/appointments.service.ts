@@ -22,6 +22,7 @@ import { AppointmentCancellation } from 'src/modules/appointments/entities/appoi
 
 import moment, { unitOfTime } from 'moment';
 import { toLocalTime } from 'src/common/utils/handleTime';
+import { MailService } from 'src/common/mail/mail.service';
 
 @Injectable()
 export class AppointmentsService {
@@ -36,6 +37,8 @@ export class AppointmentsService {
     private readonly doctorSlotRepo: Repository<DoctorSlot>,
 
     private readonly datasource: DataSource,
+
+    private readonly mailService: MailService,
   ) {}
   async create(createAppointmentDto: CreateAppointmentDto) {
     const {
@@ -47,6 +50,7 @@ export class AppointmentsService {
       fullname_contact,
       gender,
       note,
+      email,
     } = createAppointmentDto;
 
     // tạo transaction
@@ -136,7 +140,19 @@ export class AppointmentsService {
       await manager.update(DoctorSlot, slot_id, {
         status: StatusDoctorSlot.BOOKED,
       });
-      return toDTO(AppointmentResponseDto, newAppointment);
+
+      // lấy lịch mới đặt
+      const appointmentDetail = await manager.findOne(Appointment, {
+        where: { appointment_id: newAppointment.appointment_id },
+        relations: {
+          patient: { contact: true },
+          doctor_slot: { doctor: true },
+        },
+      });
+
+      // gửi mail
+      this.mailService.sendAppointmentEmail(appointmentDetail, email);
+      return 'Bạn đã đặt lịch thành công. Chúng tôi đã gửi email xác nhận cho bạn. Vui lòng kiểm tra email';
     });
   }
 

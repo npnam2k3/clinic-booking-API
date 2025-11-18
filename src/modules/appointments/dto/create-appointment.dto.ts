@@ -8,7 +8,11 @@ import {
   Validate,
 } from 'class-validator';
 import { IsValidDateConstraint } from 'src/common/utils/validationCustom';
-import { FULLNAME_REGEX, PHONE_REGEX } from 'src/modules/auth/regex';
+import {
+  EMAIL_REGEX,
+  FULLNAME_REGEX,
+  PHONE_REGEX,
+} from 'src/modules/auth/regex';
 import { Gender } from 'src/modules/patients/enum';
 
 export class CreateAppointmentDto {
@@ -29,6 +33,13 @@ export class CreateAppointmentDto {
     message: 'Số điện thoại người liên hệ không hợp lệ',
   })
   phone_number: string;
+
+  @IsString({ message: 'Email phải là 1 chuỗi' })
+  @IsNotEmpty({ message: 'Email không được để trống' })
+  @Matches(EMAIL_REGEX, {
+    message: 'Email không hợp lệ',
+  })
+  email: string;
 
   @IsString({ message: 'Họ tên phải là 1 chuỗi' })
   @IsNotEmpty({ message: 'Họ tên không được để trống' })
