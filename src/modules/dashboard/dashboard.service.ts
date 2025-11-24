@@ -101,6 +101,8 @@ export class DashboardService {
   async getUpcomingAppointments() {
     const today = moment().startOf('day').format('DD/MM/YYYY');
     const next2Days = moment().add(2, 'days').endOf('day').format('DD/MM/YYYY');
+    console.log('today::', today);
+    console.log('next2Days::', next2Days);
 
     const appointments = await this.dataSource
       .getRepository(Appointment)
@@ -108,10 +110,15 @@ export class DashboardService {
       .leftJoinAndSelect('a.doctor_slot', 'slot')
       .leftJoinAndSelect('a.patient', 'patient')
       .leftJoinAndSelect('slot.doctor', 'doctor')
+      // .where(
+      //   `STR_TO_DATE(slot.slot_date, "%d/%m/%Y") BETWEEN
+      //  STR_TO_DATE(:today, "%d/%m/%Y") AND STR_TO_DATE(:next2Days, "%d/%m/%Y")`,
+      //   { today, next2Days },
+      // )
       .where(
-        `STR_TO_DATE(slot.slot_date, "%d/%m/%Y") BETWEEN
-       STR_TO_DATE(:today, "%d/%m/%Y") AND STR_TO_DATE(:next2Days, "%d/%m/%Y")`,
-        { today, next2Days },
+        `STR_TO_DATE(CONCAT(slot.slot_date, ' ', slot.start_at), "%d/%m/%Y %H:%i")
+   BETWEEN NOW() AND 
+           DATE_ADD(NOW(), INTERVAL 2 DAY)`,
       )
       .andWhere('a.status IN (:...statuses)', {
         statuses: [StatusAppointment.PENDING, StatusAppointment.CONFIRMED],
