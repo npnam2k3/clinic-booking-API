@@ -309,18 +309,32 @@ export class UsersService {
 
   // hàm xóa tài khoản khách và nhân viên - quyền Admin
   async remove(userId: number) {
-    const userFound = await this.userRepo.findOne({
-      where: {
-        user_id: userId,
-      },
-      relations: {
-        contact: true,
-      },
+    return await this.datasource.transaction(async (manager) => {
+      const userFound = await manager.findOne(UserAccount, {
+        where: { user_id: userId },
+        relations: { contact: true },
+        withDeleted: false,
+      });
+
+      if (!userFound) throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
+
+      // đổi email và sdt để tránh conflict unique
+      const newEmail = this.markAsDeleted(userFound.email);
+
+      userFound.email = newEmail;
+
+      if (userFound.contact) {
+        userFound.contact.phone_number = this.markAsDeleted(
+          userFound.contact.phone_number,
+        );
+        await manager.save(Contact, userFound.contact);
+      }
+
+      await manager.save(UserAccount, userFound);
+
+      // soft delete an toàn
+      await manager.softRemove(UserAccount, userFound);
     });
-
-    if (!userFound) throw new NotFoundException(ERROR_MESSAGE.USER_NOT_FOUND);
-
-    await this.userRepo.softRemove(userFound);
   }
 
   // hàm khóa tài khoản nhân viên - quyền Admin
@@ -356,5 +370,9 @@ export class UsersService {
     await this.userRepo.update(userId, {
       is_block: false,
     });
+  }
+
+  markAsDeleted(value: string): string {
+    return `${value}__deleted__${Date.now()}_${Math.floor(Math.random() * 10000)}`;
   }
 }
